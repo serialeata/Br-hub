@@ -791,12 +791,10 @@ local function AutoKillLoop()
     if not getgenv().AutoKillEnabled then return end
     local now = tick()
     if now - lastAutoKillTime < AUTO_KILL_COOLDOWN then return end
-
     local localChar = LocalPlayer.Character
     if not localChar then return end
     local lRoot = localChar:FindFirstChild("HumanoidRootPart")
     if not lRoot then return end
-
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
@@ -805,23 +803,31 @@ local function AutoKillLoop()
         if plr == LocalPlayer then continue end
         if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
         if not plr.Character then continue end
-
-        local head = plr.Character:FindFirstChild("Head")
-        if head and IsVisible(head) then
+        local tool = plr.Character:FindFirstChildOfClass("Tool")
+        local weaponName = tool and tool.Name or "Bayonet"
+        local targetPart = nil
+        local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+        for _, name in ipairs(priority) do
+            local part = plr.Character:FindFirstChild(name)
+            if part and IsVisible(part) then
+                targetPart = part
+                break
+            end
+        end
+        if targetPart then
             local startPos = lRoot.Position
-            local endPos = head.Position
+            local endPos = targetPart.Position
             local direction = (endPos - startPos).Unit
             local normal = -direction
-
             remote:FireServer(
                 plr,
                 200,
-                "Bayonet",
+                weaponName,
                 {
                     Normal = normal,
                     Direction = direction,
                     StartPosition = startPos,
-                    Instance = head,
+                    Instance = targetPart,
                     Material = Enum.Material.Plastic,
                     EndPosition = endPos
                 }
@@ -851,6 +857,7 @@ local autoKillToggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKill", autoKillToggle)
+
 local pingChangerToggle = ExploitsTab:Toggle({
     Title = "Ping Changer",
     Desc = "Changes The Ping People See Pm The Leaderboard",
