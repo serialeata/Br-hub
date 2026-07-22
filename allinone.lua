@@ -783,6 +783,7 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
+-- ==================== AUTO KILL V1 [BETA] ====================
 local autoKillV1Connection = nil
 local autoKillV1Running = false
 
@@ -794,48 +795,69 @@ local function IsVisible(targetPart)
     local origin = Camera.CFrame.Position
     local dir = (targetPart.Position - origin).Unit * 1000
     local result = workspace:Raycast(origin, dir, params)
-    return result == nil
+    local visible = result == nil
+    if not visible then
+        print("[V1] Part not visible:", targetPart.Name, "blocked by", result and result.Instance.Name)
+    end
+    return visible
 end
 
 local function AutoKillV1Loop()
+    print("[V1] Loop started")
     while autoKillV1Running do
         task.wait(0)
+        print("[V1] Tick")
         local localChar = LocalPlayer.Character
-        if not localChar then continue end
+        if not localChar then print("[V1] No local character"); continue end
         local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-        if not lRoot then continue end
+        if not lRoot then print("[V1] No root part"); continue end
+
         local remote = ReplicatedStorage:FindFirstChild("GameEvents")
         if remote then remote = remote:FindFirstChild("Damage") end
-        if not remote then continue end
+        if not remote then print("[V1] Remote not found"); continue end
+
+        local enemiesFound = 0
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr == LocalPlayer then continue end
             if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
             if not plr.Character then continue end
+            enemiesFound = enemiesFound + 1
             local head = plr.Character:FindFirstChild("Head")
-            if head and IsVisible(head) then
-                local tool = plr.Character:FindFirstChildOfClass("Tool")
-                local weaponName = (tool and tool.Name) or "Bayonet"
-                local startPos = lRoot.Position
-                local endPos = head.Position
-                local direction = (endPos - startPos).Unit
-                local normal = -direction
-                remote:FireServer(
-                    plr,
-                    200,
-                    weaponName,
-                    {
-                        Normal = normal,
-                        Direction = direction,
-                        StartPosition = startPos,
-                        Instance = head,
-                        Material = Enum.Material.Plastic,
-                        EndPosition = endPos
-                    }
-                )
-                break
+            if head then
+                print("[V1] Checking head of", plr.Name)
+                if IsVisible(head) then
+                    print("[V1] Head is VISIBLE for", plr.Name, "- firing remote")
+                    local tool = plr.Character:FindFirstChildOfClass("Tool")
+                    local weaponName = (tool and tool.Name) or "Bayonet"
+                    local startPos = lRoot.Position
+                    local endPos = head.Position
+                    local direction = (endPos - startPos).Unit
+                    local normal = -direction
+                    remote:FireServer(
+                        plr,
+                        200,
+                        weaponName,
+                        {
+                            Normal = normal,
+                            Direction = direction,
+                            StartPosition = startPos,
+                            Instance = head,
+                            Material = Enum.Material.Plastic,
+                            EndPosition = endPos
+                        }
+                    )
+                    print("[V1] Remote fired for", plr.Name)
+                    break
+                else
+                    print("[V1] Head NOT visible for", plr.Name)
+                end
+            else
+                print("[V1] No Head part for", plr.Name)
             end
         end
+        if enemiesFound == 0 then print("[V1] No enemies found") end
     end
+    print("[V1] Loop ended")
 end
 
 local autoKillV1Toggle = ExploitsTab:Toggle({
@@ -844,27 +866,33 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
+        print("[V1] Toggle state:", state)
         if state then
             if autoKillV1Connection then
                 autoKillV1Running = false
                 coroutine.close(autoKillV1Connection)
+                print("[V1] Closed previous coroutine")
             end
             autoKillV1Running = true
             autoKillV1Connection = coroutine.wrap(AutoKillV1Loop)()
+            print("[V1] Started new coroutine")
         else
             autoKillV1Running = false
             if autoKillV1Connection then
                 coroutine.close(autoKillV1Connection)
                 autoKillV1Connection = nil
+                print("[V1] Stopped and closed coroutine")
             end
         end
     end
 })
 currentConfig:Register("AutoKillV1", autoKillV1Toggle)
+
+-- ==================== AUTO KILL V2 [BETA] ====================
 local autoKillV2Connection = nil
 local autoKillV2Running = false
 
-local function IsVisible(targetPart)
+local function IsVisibleV2(targetPart)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Blacklist
     params.FilterDescendantsInstances = {LocalPlayer.Character}
@@ -872,35 +900,47 @@ local function IsVisible(targetPart)
     local origin = Camera.CFrame.Position
     local dir = (targetPart.Position - origin).Unit * 1000
     local result = workspace:Raycast(origin, dir, params)
-    return result == nil
+    local visible = result == nil
+    if not visible then
+        print("[V2] Part not visible:", targetPart.Name, "blocked by", result and result.Instance.Name)
+    end
+    return visible
 end
 
 local function AutoKillV2Loop()
+    print("[V2] Loop started")
     while autoKillV2Running do
         task.wait(0)
+        print("[V2] Tick")
         local localChar = LocalPlayer.Character
-        if not localChar then continue end
+        if not localChar then print("[V2] No local character"); continue end
         local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-        if not lRoot then continue end
+        if not lRoot then print("[V2] No root part"); continue end
+
         local remote = ReplicatedStorage:FindFirstChild("GameEvents")
         if remote then remote = remote:FindFirstChild("Damage") end
-        if not remote then continue end
+        if not remote then print("[V2] Remote not found"); continue end
+
         local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+        local enemiesFound = 0
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr == LocalPlayer then continue end
             if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
             if not plr.Character then continue end
+            enemiesFound = enemiesFound + 1
             local tool = plr.Character:FindFirstChildOfClass("Tool")
             local weaponName = (tool and tool.Name) or "Bayonet"
             local targetPart = nil
             for _, name in ipairs(priority) do
                 local part = plr.Character:FindFirstChild(name)
-                if part and IsVisible(part) then
+                if part and IsVisibleV2(part) then
+                    print("[V2] Found visible part:", name, "for", plr.Name)
                     targetPart = part
                     break
                 end
             end
             if targetPart then
+                print("[V2] Firing remote for", plr.Name, "target part:", targetPart.Name)
                 local startPos = lRoot.Position
                 local endPos = targetPart.Position
                 local direction = (endPos - startPos).Unit
@@ -918,10 +958,15 @@ local function AutoKillV2Loop()
                         EndPosition = endPos
                     }
                 )
+                print("[V2] Remote fired for", plr.Name)
                 break
+            else
+                print("[V2] No visible part found for", plr.Name)
             end
         end
+        if enemiesFound == 0 then print("[V2] No enemies found") end
     end
+    print("[V2] Loop ended")
 end
 
 local autoKillV2Toggle = ExploitsTab:Toggle({
@@ -930,24 +975,27 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
+        print("[V2] Toggle state:", state)
         if state then
             if autoKillV2Connection then
                 autoKillV2Running = false
                 coroutine.close(autoKillV2Connection)
+                print("[V2] Closed previous coroutine")
             end
             autoKillV2Running = true
             autoKillV2Connection = coroutine.wrap(AutoKillV2Loop)()
+            print("[V2] Started new coroutine")
         else
             autoKillV2Running = false
             if autoKillV2Connection then
                 coroutine.close(autoKillV2Connection)
                 autoKillV2Connection = nil
+                print("[V2] Stopped and closed coroutine")
             end
         end
     end
 })
-currentConfig:Register("AutoKillV2", autoKillV2Toggle)
-local pingChangerToggle = ExploitsTab:Toggle({
+currentConfig:Register("AutoKillV2", autoKillV2Toggle)local pingChangerToggle = ExploitsTab:Toggle({
     Title = "Ping Changer",
     Desc = "Changes The Ping People See Pm The Leaderboard",
     Icon = "wifi",
