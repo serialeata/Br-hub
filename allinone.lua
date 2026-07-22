@@ -825,18 +825,20 @@ local pingChangerSlider = ExploitsTab:Slider({
 currentConfig:Register("PingChangerValue", pingChangerSlider)
 
 
--- ==================== AUTO KILL V1 [BETA] ====================
 local autoKillV1Connection = nil
 local autoKillV1Running = false
 
-local function IsVisible(originPos, targetCharacter)
+local function isAlive(character)
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
+end
+
+local function canSee(originPos, targetCharacter, ignoreList)
     local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
     if not targetRoot then return false end
-
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
-
+    params.FilterDescendantsInstances = ignoreList
     local result = workspace:Raycast(originPos, targetRoot.Position - originPos, params)
     return result == nil
 end
@@ -844,9 +846,9 @@ end
 local function AutoKillV1Loop()
     if not autoKillV1Running then return end
     local localChar = LocalPlayer.Character
-    if not localChar then return end
-    local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-    if not lRoot then return end
+    if not localChar or not isAlive(localChar) then return end
+    local myHead = localChar:FindFirstChild("Head")
+    if not myHead then return end
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
@@ -854,28 +856,30 @@ local function AutoKillV1Loop()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
-        if not plr.Character then continue end
-        local head = plr.Character:FindFirstChild("Head")
-        if head and IsVisible(lRoot.Position, plr.Character) then
-            local startPos = lRoot.Position
-            local endPos = head.Position
-            local direction = (endPos - startPos).Unit
-            local normal = -direction
-            remote:FireServer(
-                plr,
-                200,
-                "Bayonet",
-                {
-                    Normal = normal,
-                    Direction = direction,
-                    StartPosition = startPos,
-                    Instance = head,
-                    Material = Enum.Material.Plastic,
-                    EndPosition = endPos
-                }
-            )
-            break
-        end
+        local char = plr.Character
+        if not char or not isAlive(char) then continue end
+        if not canSee(myHead.Position, char, {localChar, char}) then continue end
+        local head = char:FindFirstChild("Head")
+        if not head then continue end
+
+        local startPos = myHead.Position
+        local endPos = head.Position
+        local direction = (endPos - startPos).Unit
+        local normal = -direction
+        remote:FireServer(
+            plr,
+            200,
+            "Bayonet",
+            {
+                Normal = normal,
+                Direction = direction,
+                StartPosition = startPos,
+                Instance = head,
+                Material = Enum.Material.Plastic,
+                EndPosition = endPos
+            }
+        )
+        break
     end
 end
 
@@ -900,16 +904,15 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
 })
 currentConfig:Register("AutoKillV1", autoKillV1Toggle)
 
--- ==================== AUTO KILL V2 [BETA] ====================
 local autoKillV2Connection = nil
 local autoKillV2Running = false
 
 local function AutoKillV2Loop()
     if not autoKillV2Running then return end
     local localChar = LocalPlayer.Character
-    if not localChar then return end
-    local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-    if not lRoot then return end
+    if not localChar or not isAlive(localChar) then return end
+    local myHead = localChar:FindFirstChild("Head")
+    if not myHead then return end
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
@@ -919,35 +922,38 @@ local function AutoKillV2Loop()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
-        if not plr.Character then continue end
+        local char = plr.Character
+        if not char or not isAlive(char) then continue end
+        if not canSee(myHead.Position, char, {localChar, char}) then continue end
+
         local targetPart = nil
         for _, name in ipairs(priority) do
-            local part = plr.Character:FindFirstChild(name)
-            if part and IsVisible(lRoot.Position, plr.Character) then
+            local part = char:FindFirstChild(name)
+            if part then
                 targetPart = part
                 break
             end
         end
-        if targetPart then
-            local startPos = lRoot.Position
-            local endPos = targetPart.Position
-            local direction = (endPos - startPos).Unit
-            local normal = -direction
-            remote:FireServer(
-                plr,
-                200,
-                "Bayonet",
-                {
-                    Normal = normal,
-                    Direction = direction,
-                    StartPosition = startPos,
-                    Instance = targetPart,
-                    Material = Enum.Material.Plastic,
-                    EndPosition = endPos
-                }
-            )
-            break
-        end
+        if not targetPart then continue end
+
+        local startPos = myHead.Position
+        local endPos = targetPart.Position
+        local direction = (endPos - startPos).Unit
+        local normal = -direction
+        remote:FireServer(
+            plr,
+            200,
+            "Bayonet",
+            {
+                Normal = normal,
+                Direction = direction,
+                StartPosition = startPos,
+                Instance = targetPart,
+                Material = Enum.Material.Plastic,
+                EndPosition = endPos
+            }
+        )
+        break
     end
 end
 
@@ -971,7 +977,6 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
-
 
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
