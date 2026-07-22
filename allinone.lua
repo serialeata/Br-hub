@@ -783,7 +783,47 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
--- ==================== AUTO KILL V1 [BETA] ====================
+-- ==================== PING CHANGER ====================
+local pingChangerToggle = ExploitsTab:Toggle({
+    Title = "Ping Changer",
+    Desc = "Changes The Ping People See On The Leaderboard",
+    Icon = "wifi",
+    Flag = "PingChanger",
+    Callback = function(state)
+        if state then
+            if Connections.PingChanger then Connections.PingChanger:Disconnect() end
+            Connections.PingChanger = RunService.Heartbeat:Connect(function()
+                local latencyValue = getgenv().PingChangerValue or 0
+                local eventModule = ReplicatedStorage:FindFirstChild("GameEvents")
+                if eventModule then
+                    local latencyEvent = eventModule:FindFirstChild("Latency")
+                    if latencyEvent then
+                        latencyEvent:FireServer(latencyValue)
+                    end
+                end
+            end)
+        else
+            if Connections.PingChanger then
+                Connections.PingChanger:Disconnect()
+                Connections.PingChanger = nil
+            end
+        end
+    end
+})
+currentConfig:Register("PingChanger", pingChangerToggle)
+
+local pingChangerSlider = ExploitsTab:Slider({
+    Title = "Ping Value",
+    Desc = "Sets the ping value (0 to 1000)",
+    Step = 1,
+    Flag = "PingChangerValue",
+    Value = { Min = 0, Max = 1000, Default = 0 },
+    Callback = function(value)
+        getgenv().PingChangerValue = value
+    end
+})
+currentConfig:Register("PingChangerValue", pingChangerSlider)
+
 -- ==================== AUTO KILL V1 [BETA] ====================
 local autoKillV1Connection = nil
 local autoKillV1Running = false
@@ -800,25 +840,21 @@ local function IsVisible(targetPart)
 end
 
 local function AutoKillV1Loop()
-    print("[V1] Loop started")
     while autoKillV1Running do
         task.wait(0)
         local localChar = LocalPlayer.Character
-        if not localChar then print("[V1] No local character"); continue end
+        if not localChar then continue end
         local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-        if not lRoot then print("[V1] No root part"); continue end
-
+        if not lRoot then continue end
         local remote = ReplicatedStorage:FindFirstChild("GameEvents")
         if remote then remote = remote:FindFirstChild("Damage") end
-        if not remote then print("[V1] Remote not found"); continue end
-
+        if not remote then continue end
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr == LocalPlayer then continue end
             if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
             if not plr.Character then continue end
             local head = plr.Character:FindFirstChild("Head")
             if head and IsVisible(head) then
-                print("[V1] Head VISIBLE for", plr.Name, "- firing remote")
                 local tool = plr.Character:FindFirstChildOfClass("Tool")
                 local weaponName = (tool and tool.Name) or "Bayonet"
                 local startPos = lRoot.Position
@@ -842,7 +878,6 @@ local function AutoKillV1Loop()
             end
         end
     end
-    print("[V1] Loop ended")
 end
 
 local autoKillV1Toggle = ExploitsTab:Toggle({
@@ -851,7 +886,6 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
-        print("[V1] Toggle state:", state)
         if state then
             if autoKillV1Connection then
                 autoKillV1Running = false
@@ -875,18 +909,15 @@ local autoKillV2Connection = nil
 local autoKillV2Running = false
 
 local function AutoKillV2Loop()
-    print("[V2] Loop started")
     while autoKillV2Running do
         task.wait(0)
         local localChar = LocalPlayer.Character
-        if not localChar then print("[V2] No local character"); continue end
+        if not localChar then continue end
         local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-        if not lRoot then print("[V2] No root part"); continue end
-
+        if not lRoot then continue end
         local remote = ReplicatedStorage:FindFirstChild("GameEvents")
         if remote then remote = remote:FindFirstChild("Damage") end
-        if not remote then print("[V2] Remote not found"); continue end
-
+        if not remote then continue end
         local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr == LocalPlayer then continue end
@@ -903,7 +934,6 @@ local function AutoKillV2Loop()
                 end
             end
             if targetPart then
-                print("[V2] Firing for", plr.Name, "target:", targetPart.Name)
                 local startPos = lRoot.Position
                 local endPos = targetPart.Position
                 local direction = (endPos - startPos).Unit
@@ -925,7 +955,6 @@ local function AutoKillV2Loop()
             end
         end
     end
-    print("[V2] Loop ended")
 end
 
 local autoKillV2Toggle = ExploitsTab:Toggle({
@@ -934,7 +963,6 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
-        print("[V2] Toggle state:", state)
         if state then
             if autoKillV2Connection then
                 autoKillV2Running = false
@@ -951,46 +979,7 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
         end
     end
 })
-currentConfig:Register("AutoKillV2", autoKillV2Toggle)    Desc = "Changes The Ping People See Pm The Leaderboard",
-    Icon = "wifi",
-    Flag = "PingChanger",
-    Callback = function(state)
-        if state then
-            if Connections.PingChanger then
-                Connections.PingChanger:Disconnect()
-            end
-            Connections.PingChanger = RunService.Heartbeat:Connect(function()
-                local latencyValue = getgenv().PingChangerValue or 0
-                local eventModule = ReplicatedStorage:FindFirstChild("GameEvents")
-                if eventModule then
-                    local latencyEvent = eventModule:FindFirstChild("Latency")
-                    if latencyEvent then
-                        latencyEvent:FireServer(latencyValue)
-                    end
-                end
-            end)
-        else
-            if Connections.PingChanger then
-                Connections.PingChanger:Disconnect()
-                Connections.PingChanger = nil
-            end
-        end
-    end
-})
-currentConfig:Register("PingChanger", pingChangerToggle)
-
-local pingChangerSlider = ExploitsTab:Slider({
-    Title = "Ping Value",
-    Desc = "Sets the ping value (0 to 1000) ",
-    Step = 1,
-    Flag = "PingChangerValue",
-    Value = { Min = 0, Max = 1000, Default = 0 },
-    Callback = function(value)
-        getgenv().PingChangerValue = value
-    end
-})
-currentConfig:Register("PingChangerValue", pingChangerSlider)
-
+currentConfig:Register("AutoKillV2", autoKillV2Toggle)
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
     Desc = "Teleports above & behind enemies",
