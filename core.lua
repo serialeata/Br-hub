@@ -1,13 +1,6 @@
 return {
     Init = function()
-        local WindUI
-        local loadOk, loadErr = pcall(function()
-            WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-        end)
-        if not loadOk or not WindUI then
-            warn("core.lua: Failed to load WindUI: " .. tostring(loadErr))
-            return
-        end
+        local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
         getgenv().WindUI = WindUI
 
         local customThemes = {
@@ -37,12 +30,32 @@ return {
         getgenv().ConfigManager = Window.ConfigManager
         getgenv().currentConfig = getgenv().ConfigManager:CreateConfig("DefaultConfig")
 
+        -- Global settings tables
         getgenv().SpinBotSettings = { Enabled = false, Mode = "Spin" }
         getgenv().AimbotSettings = { Enabled = false, Smoothness = 1, TargetPart = "Head", TeamCheck = false, FOV = 100, ShowFOV = true, VisibleOnly = false, MouseLock = false }
         getgenv().EspSettings = { Boxes = false, Tracers = false, Skeleton = false }
         getgenv().HitboxSettings = { Enabled = false, Size = 4, WallCheck = false }
         getgenv().Connections = {}
 
+        -- Create all tabs and store them in getgenv().Tabs
+        getgenv().Tabs = {
+            Info = Window:Tab({ Title = "Info", Icon = "home" }),
+            Movement = Window:Tab({ Title = "Movement", Icon = "user" }),
+            Aim = Window:Tab({ Title = "Aim", Icon = "crosshair" }),
+            AntiAim = Window:Tab({ Title = "Anti Aim", Icon = "shield-off" }),
+            Exploits = Window:Tab({ Title = "Exploits", Icon = "zap" }),
+            Visuals = Window:Tab({ Title = "Visuals", Icon = "eye" }),
+            Utility = Window:Tab({ Title = "Utility", Icon = "wrench" }),
+            Settings = Window:Tab({ Title = "Settings", Icon = "settings" }),
+        }
+
+        -- Info tab content (static buttons)
+        local info = getgenv().Tabs.Info
+        info:Button({ Title = "Welcome to BR Hub", Desc = "Current Version: v2.4.0", Callback = function() end })
+        info:Button({ Title = "Changelog", Desc = "- Config system added\n- Skeleton & Tracer ESP\n- Team-colored visuals\n- Custom themes", Callback = function() end })
+        info:Button({ Title = "Script Credits", Desc = "Lead Developer: goth\nUI Framework: WindUI", Callback = function() end })
+
+        -- AFK bypass
         local vUser = game:GetService("VirtualUser")
         game:GetService("Players").LocalPlayer.Idled:Connect(function()
             vUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
@@ -50,6 +63,7 @@ return {
             vUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
         end)
 
+        -- UI toggle with RightControl
         local uiVisible = true
         game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
             if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
