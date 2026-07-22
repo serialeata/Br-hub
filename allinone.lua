@@ -829,10 +829,20 @@ currentConfig:Register("PingChangerValue", pingChangerSlider)
 local autoKillV1Connection = nil
 local autoKillV1Running = false
 
-local function IsOnScreen(targetPart)
+local function IsVisible(targetPart)
     local cam = Camera
+    -- First check if on screen
     local pos, onScreen = cam:WorldToViewportPoint(targetPart.Position)
-    return onScreen
+    if not onScreen then return false end
+    -- Then raycast to check for walls
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+    params.IgnoreWater = true
+    local origin = cam.CFrame.Position
+    local dir = (targetPart.Position - origin).Unit * 1000
+    local result = workspace:Raycast(origin, dir, params)
+    return result == nil
 end
 
 local function AutoKillV1Loop()
@@ -847,13 +857,12 @@ local function AutoKillV1Loop()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
-        -- Skip teammates only if teams are defined
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then
             continue
         end
         if not plr.Character then continue end
         local head = plr.Character:FindFirstChild("Head")
-        if head and IsOnScreen(head) then
+        if head and IsVisible(head) then
             local startPos = lRoot.Position
             local endPos = head.Position
             local direction = (endPos - startPos).Unit
@@ -878,7 +887,7 @@ end
 
 local autoKillV1Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V1 [BETA]",
-    Desc = "Targets head if on screen (skips teammates)",
+    Desc = "Targets head if visible and not behind wall",
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
@@ -922,7 +931,7 @@ local function AutoKillV2Loop()
         local targetPart = nil
         for _, name in ipairs(priority) do
             local part = plr.Character:FindFirstChild(name)
-            if part and IsOnScreen(part) then
+            if part and IsVisible(part) then
                 targetPart = part
                 break
             end
@@ -952,7 +961,7 @@ end
 
 local autoKillV2Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V2 [BETA]",
-    Desc = "Targets any on-screen part (skips teammates)",
+    Desc = "Targets any visible part not behind wall (Head > Torso > Arms > Legs)",
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
