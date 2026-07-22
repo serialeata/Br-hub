@@ -829,19 +829,15 @@ currentConfig:Register("PingChangerValue", pingChangerSlider)
 local autoKillV1Connection = nil
 local autoKillV1Running = false
 
-local function IsVisible(targetPart)
-    local cam = Camera
-    -- First check if on screen
-    local pos, onScreen = cam:WorldToViewportPoint(targetPart.Position)
-    if not onScreen then return false end
-    -- Then raycast to check for walls
+local function IsVisible(originPos, targetCharacter)
+    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then return false end
+
     local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = {LocalPlayer.Character}
-    params.IgnoreWater = true
-    local origin = cam.CFrame.Position
-    local dir = (targetPart.Position - origin).Unit * 1000
-    local result = workspace:Raycast(origin, dir, params)
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
+
+    local result = workspace:Raycast(originPos, targetRoot.Position - originPos, params)
     return result == nil
 end
 
@@ -857,12 +853,10 @@ local function AutoKillV1Loop()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
-        if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then
-            continue
-        end
+        if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
         if not plr.Character then continue end
         local head = plr.Character:FindFirstChild("Head")
-        if head and IsVisible(head) then
+        if head and IsVisible(lRoot.Position, plr.Character) then
             local startPos = lRoot.Position
             local endPos = head.Position
             local direction = (endPos - startPos).Unit
@@ -924,14 +918,12 @@ local function AutoKillV2Loop()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
-        if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then
-            continue
-        end
+        if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
         if not plr.Character then continue end
         local targetPart = nil
         for _, name in ipairs(priority) do
             local part = plr.Character:FindFirstChild(name)
-            if part and IsVisible(part) then
+            if part and IsVisible(lRoot.Position, plr.Character) then
                 targetPart = part
                 break
             end
@@ -979,7 +971,6 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
-
 
 
 local killAllToggle = ExploitsTab:Toggle({
