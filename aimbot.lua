@@ -1,14 +1,8 @@
 return {
     Init = function()
-        -- Wait up to 5 seconds for Window to exist
-        local attempts = 0
-        while not getgenv().Window and attempts < 50 do
+        -- Wait until Window is set, no timeout
+        while not getgenv().Window do
             task.wait(0.1)
-            attempts = attempts + 1
-        end
-        if not getgenv().Window then
-            warn("Aimbot: Window not found after 5 seconds")
-            return
         end
 
         local tab = getgenv().Window:Tab({ Title = "Aim", Icon = "crosshair" })
@@ -43,7 +37,7 @@ return {
         local toggle7 = tab:Toggle({ Title = "Mouse Lock (Aimbot)", Desc = "Locks mouse to screen centre", Icon = "lock", Flag = "MouseLock", Callback = function(v) getgenv().AimbotSettings.MouseLock = v end })
         getgenv().currentConfig:Register("MouseLock", toggle7)
 
-        -- FOV Circle creation
+        -- FOV Circle
         local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
         local fovGui = Instance.new("ScreenGui")
         fovGui.Name = "FOVCircle"
@@ -118,7 +112,7 @@ return {
             return target
         end
 
-        -- Render loop for aimbot and hitbox
+        -- Render loop
         getgenv().Connections.AimbotRender = game:GetService("RunService").RenderStepped:Connect(function()
             local cam = workspace.CurrentCamera
             local lp = game:GetService("Players").LocalPlayer
