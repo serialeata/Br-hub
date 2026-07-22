@@ -1,6 +1,7 @@
 return {
     Init = function()
-        local tab = getgenv().Window:Tab({ Title = "Anti Aim", Icon = "shield-off" })
+        local tab = getgenv().Tabs.AntiAim
+
         local spinConnection = nil
         local function StartSpinBot()
             if spinConnection then spinConnection:Disconnect() end
@@ -27,6 +28,7 @@ return {
                 end
             end)
         end
+
         local toggle = tab:Toggle({ Title = "Spin Bot", Desc = "Spins The Player In Circles", Icon = "refresh-cw", Flag = "SpinBotEnabled", Callback = function(state)
             getgenv().SpinBotSettings.Enabled = state
             if state then StartSpinBot()
@@ -37,6 +39,7 @@ return {
             end
         end })
         getgenv().currentConfig:Register("SpinBotEnabled", toggle)
+
         local dropdown = tab:Dropdown({ Title = "SpinBot Mode", Desc = "Select spin type", Flag = "SpinBotMode", Values = {
             { Title = "Spin", Desc = "Fast yaw spin", Icon = "refresh-cw", Callback = function()
                 getgenv().SpinBotSettings.Mode = "Spin"
@@ -48,6 +51,7 @@ return {
             end }
         } })
         getgenv().currentConfig:Register("SpinBotMode", dropdown)
+
         game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function()
             task.wait(0.5)
             if getgenv().SpinBotSettings.Enabled then StartSpinBot() end
