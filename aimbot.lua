@@ -1,32 +1,55 @@
 return {
     Init = function()
+        -- Wait up to 5 seconds for Window to exist
+        local attempts = 0
+        while not getgenv().Window and attempts < 50 do
+            task.wait(0.1)
+            attempts = attempts + 1
+        end
+        if not getgenv().Window then
+            warn("Aimbot: Window not found after 5 seconds")
+            return
+        end
+
         local tab = getgenv().Window:Tab({ Title = "Aim", Icon = "crosshair" })
+
         local toggle = tab:Toggle({ Title = "Aimbot (lowk sucks)", Desc = "Locks camera onto target", Icon = "target", Flag = "Aimbot", Callback = function(v) getgenv().AimbotSettings.Enabled = v end })
         getgenv().currentConfig:Register("Aimbot", toggle)
+
         local toggle2 = tab:Toggle({ Title = "Team Check", Icon = "users", Flag = "TeamCheck", Callback = function(v) getgenv().AimbotSettings.TeamCheck = v end })
         getgenv().currentConfig:Register("TeamCheck", toggle2)
+
         local toggle3 = tab:Toggle({ Title = "Visible Only", Desc = "Raycast visibility", Icon = "eye", Flag = "VisibleOnly", Callback = function(v) getgenv().AimbotSettings.VisibleOnly = v end })
         getgenv().currentConfig:Register("VisibleOnly", toggle3)
+
         local toggle4 = tab:Toggle({ Title = "Show FOV Circle", Icon = "circle", Flag = "ShowFOV", Callback = function(v) getgenv().AimbotSettings.ShowFOV = v; if getgenv().fovFrame then getgenv().fovFrame.Visible = v end end })
         getgenv().currentConfig:Register("ShowFOV", toggle4)
+
         local slider = tab:Slider({ Title = "Aimbot FOV Radius", Step = 10, Flag = "FOVRadius", Value = { Min = 30, Max = 600, Default = 100 }, Callback = function(v) getgenv().AimbotSettings.FOV = v; if getgenv().UpdateFOVCircle then getgenv().UpdateFOVCircle(v) end end })
         getgenv().currentConfig:Register("FOVRadius", slider)
+
         local slider2 = tab:Slider({ Title = "Aimbot Smoothness", Step = 1, Flag = "Smoothness", Value = { Min = 1, Max = 10, Default = 1 }, Callback = function(v) getgenv().AimbotSettings.Smoothness = v end })
         getgenv().currentConfig:Register("Smoothness", slider2)
+
         local toggle5 = tab:Toggle({ Title = "Adaptive Hitbox Expander", Icon = "maximize-2", Flag = "HitboxEnabled", Callback = function(v) getgenv().HitboxSettings.Enabled = v end })
         getgenv().currentConfig:Register("HitboxEnabled", toggle5)
+
         local slider3 = tab:Slider({ Title = "Hitbox Size Changer", Step = 1, Flag = "HitboxSize", Value = { Min = 2, Max = 30, Default = 6 }, Callback = function(v) getgenv().HitboxSettings.Size = v end })
         getgenv().currentConfig:Register("HitboxSize", slider3)
+
         local toggle6 = tab:Toggle({ Title = "Hitbox Wall Check", Icon = "eye-off", Flag = "HitboxWallCheck", Callback = function(v) getgenv().HitboxSettings.WallCheck = v end })
         getgenv().currentConfig:Register("HitboxWallCheck", toggle6)
+
         local toggle7 = tab:Toggle({ Title = "Mouse Lock (Aimbot)", Desc = "Locks mouse to screen centre", Icon = "lock", Flag = "MouseLock", Callback = function(v) getgenv().AimbotSettings.MouseLock = v end })
         getgenv().currentConfig:Register("MouseLock", toggle7)
 
+        -- FOV Circle creation
         local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
         local fovGui = Instance.new("ScreenGui")
         fovGui.Name = "FOVCircle"
         fovGui.IgnoreGuiInset = true
         fovGui.Parent = playerGui
+
         local fovFrame = Instance.new("Frame")
         fovFrame.Name = "Circle"
         fovFrame.Size = UDim2.new(0, 200, 0, 200)
@@ -35,20 +58,27 @@ return {
         fovFrame.BackgroundTransparency = 1
         fovFrame.BorderSizePixel = 0
         fovFrame.Parent = fovGui
+
         local stroke = Instance.new("UIStroke")
         stroke.Color = Color3.fromRGB(255, 0, 100)
         stroke.Thickness = 1.5
         stroke.Transparency = 0.8
         stroke.Parent = fovFrame
+
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = fovFrame
+
         fovFrame.Visible = getgenv().AimbotSettings.ShowFOV
         getgenv().fovFrame = fovFrame
         getgenv().fovStroke = stroke
-        function getgenv().UpdateFOVCircle(radius) fovFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2) end
+
+        function getgenv().UpdateFOVCircle(radius)
+            fovFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
+        end
         getgenv().UpdateFOVCircle(getgenv().AimbotSettings.FOV)
 
+        -- Visibility check
         local function IsVisible(targetPart)
             local cam = workspace.CurrentCamera
             local lp = game:GetService("Players").LocalPlayer
@@ -62,6 +92,7 @@ return {
             return workspace:Raycast(origin, dir, params) == nil
         end
 
+        -- Closest player
         local function GetClosestPlayer()
             local target = nil
             local shortest = math.huge
@@ -87,6 +118,7 @@ return {
             return target
         end
 
+        -- Render loop for aimbot and hitbox
         getgenv().Connections.AimbotRender = game:GetService("RunService").RenderStepped:Connect(function()
             local cam = workspace.CurrentCamera
             local lp = game:GetService("Players").LocalPlayer
