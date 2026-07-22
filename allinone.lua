@@ -833,13 +833,14 @@ local function isAlive(character)
     return hum and hum.Health > 0
 end
 
-local function canSee(originPos, targetCharacter, ignoreList)
+local function canSee(targetCharacter, ignoreList)
+    local camPos = Camera.CFrame.Position
     local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
     if not targetRoot then return false end
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = ignoreList
-    local result = workspace:Raycast(originPos, targetRoot.Position - originPos, params)
+    local result = workspace:Raycast(camPos, targetRoot.Position - camPos, params)
     return result == nil
 end
 
@@ -847,8 +848,6 @@ local function AutoKillV1Loop()
     if not autoKillV1Running then return end
     local localChar = LocalPlayer.Character
     if not localChar or not isAlive(localChar) then return end
-    local myHead = localChar:FindFirstChild("Head")
-    if not myHead then return end
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
@@ -858,13 +857,13 @@ local function AutoKillV1Loop()
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
         local char = plr.Character
         if not char or not isAlive(char) then continue end
-        if not canSee(myHead.Position, char, {localChar, char}) then continue end
+        if not canSee(char, {localChar, char}) then continue end
         local head = char:FindFirstChild("Head")
         if not head then continue end
 
-        local startPos = myHead.Position
+        local camPos = Camera.CFrame.Position
         local endPos = head.Position
-        local direction = (endPos - startPos).Unit
+        local direction = (endPos - camPos).Unit
         local normal = -direction
         remote:FireServer(
             plr,
@@ -873,7 +872,7 @@ local function AutoKillV1Loop()
             {
                 Normal = normal,
                 Direction = direction,
-                StartPosition = startPos,
+                StartPosition = camPos,
                 Instance = head,
                 Material = Enum.Material.Plastic,
                 EndPosition = endPos
@@ -911,8 +910,6 @@ local function AutoKillV2Loop()
     if not autoKillV2Running then return end
     local localChar = LocalPlayer.Character
     if not localChar or not isAlive(localChar) then return end
-    local myHead = localChar:FindFirstChild("Head")
-    if not myHead then return end
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
@@ -924,7 +921,7 @@ local function AutoKillV2Loop()
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
         local char = plr.Character
         if not char or not isAlive(char) then continue end
-        if not canSee(myHead.Position, char, {localChar, char}) then continue end
+        if not canSee(char, {localChar, char}) then continue end
 
         local targetPart = nil
         for _, name in ipairs(priority) do
@@ -936,9 +933,9 @@ local function AutoKillV2Loop()
         end
         if not targetPart then continue end
 
-        local startPos = myHead.Position
+        local camPos = Camera.CFrame.Position
         local endPos = targetPart.Position
-        local direction = (endPos - startPos).Unit
+        local direction = (endPos - camPos).Unit
         local normal = -direction
         remote:FireServer(
             plr,
@@ -947,7 +944,7 @@ local function AutoKillV2Loop()
             {
                 Normal = normal,
                 Direction = direction,
-                StartPosition = startPos,
+                StartPosition = camPos,
                 Instance = targetPart,
                 Material = Enum.Material.Plastic,
                 EndPosition = endPos
@@ -977,6 +974,8 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
+
+
 
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
