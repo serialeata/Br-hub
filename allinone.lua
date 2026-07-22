@@ -825,44 +825,61 @@ local pingChangerSlider = ExploitsTab:Slider({
 currentConfig:Register("PingChangerValue", pingChangerSlider)
 
 
--- ==================== AUTO KILL V1 [BETA] WITH FILE LOGGING ====================
-local autoKillV1Connection = nil
-local autoKillV1Running = false
-
--- Logging function: writes to console and file
-local function LogToFile(message, level)
+-- ==================== AUTO KILL V1 [BETA] + V2 WITH SAFE LOGGING ====================
+-- Safe logging function – tries io, then writefile, then console only
+local function LogToFile(message)
     local timestamp = os.date("%H:%M:%S")
     local formatted = string.format("[%s] %s", timestamp, message)
-    print(formatted)
-    local success, err = pcall(function()
-        local file = io.open("autokill_log.txt", "a")
-        if file then
-            file:write(formatted .. "\n")
-            file:close()
-        else
-            print("Log file could not be opened: " .. tostring(err))
+    print(formatted) -- always print to console
+
+    local function writeToFile(content)
+        -- Method 1: io (standard Lua)
+        if io and io.open then
+            local file, err = io.open("autokill_log.txt", "a")
+            if file then
+                file:write(content .. "\n")
+                file:close()
+                return true
+            end
         end
-    end)
+        -- Method 2: writefile / appendfile (most executors)
+        if writefile then
+            local path = "autokill_log.txt"
+            local exists = isfile and isfile(path)
+            if exists then
+                local current = readfile(path)
+                writefile(path, current .. content .. "\n")
+            else
+                writefile(path, content .. "\n")
+            end
+            return true
+        end
+        -- Method 3: appendfile (alternative)
+        if appendfile then
+            appendfile("autokill_log.txt", content .. "\n")
+            return true
+        end
+        return false
+    end
+    -- Wrap in pcall to catch any errors silently
+    local success, err = pcall(writeToFile, formatted)
     if not success then
-        print("File logging failed: " .. tostring(err))
+        -- If all fails, just print a warning once
+        if not LogToFile._warned then
+            print("[Log] Could not write to file – only console output available")
+            LogToFile._warned = true
+        end
     end
 end
 
--- Clear log file on toggle (optional) – we won't clear, we'll append
-local function InitLog()
-    local success, err = pcall(function()
-        local file = io.open("autokill_log.txt", "w")
-        if file then
-            file:write(string.rep("=", 50) .. "\n")
-            file:write("Auto Kill Log - " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n")
-            file:write(string.rep("=", 50) .. "\n")
-            file:close()
-        end
-    end)
-    if not success then
-        print("Could not initialize log file: " .. tostring(err))
-    end
-end
+-- Write a header when the script loads (optional)
+LogToFile(string.rep("=", 60))
+LogToFile("Auto Kill Log started - " .. os.date("%Y-%m-%d %H:%M:%S"))
+LogToFile(string.rep("=", 60))
+
+-- ==================== AUTO KILL V1 [BETA] ====================
+local autoKillV1Connection = nil
+local autoKillV1Running = false
 
 local function IsVisible(targetPart)
     local params = RaycastParams.new()
@@ -907,10 +924,7 @@ local function AutoKillV1Loop()
 
     local enemiesChecked = 0
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then
-            -- LogToFile("[V1] Skipping self")
-            continue
-        end
+        if plr == LocalPlayer then continue end
         if LocalPlayer.Team and plr.Team == LocalPlayer.Team then
             LogToFile("[V1] Skipping teammate: " .. plr.Name)
             continue
@@ -954,7 +968,7 @@ local function AutoKillV1Loop()
             else
                 LogToFile("[V1] Remote fire error: " .. tostring(err))
             end
-            break -- only one enemy per tick
+            break
         end
     end
     if enemiesChecked == 0 then
@@ -977,8 +991,6 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
             autoKillV1Running = true
             autoKillV1Connection = RunService.Heartbeat:Connect(AutoKillV1Loop)
             LogToFile("[V1] Heartbeat connection established")
-            -- Write a header to separate runs
-            InitLog()
         else
             autoKillV1Running = false
             if autoKillV1Connection then
@@ -991,7 +1003,7 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
 })
 currentConfig:Register("AutoKillV1", autoKillV1Toggle)
 
--- ==================== AUTO KILL V2 [BETA] WITH FILE LOGGING ====================
+-- ==================== AUTO KILL V2 [BETA] ====================
 local autoKillV2Connection = nil
 local autoKillV2Running = false
 
@@ -1028,10 +1040,7 @@ local function AutoKillV2Loop()
     local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
     local enemiesChecked = 0
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then
-            -- LogToFile("[V2] Skipping self")
-            continue
-        end
+        if plr == LocalPlayer then continue end
         if LocalPlayer.Team and plr.Team == LocalPlayer.Team then
             LogToFile("[V2] Skipping teammate: " .. plr.Name)
             continue
@@ -1082,7 +1091,7 @@ local function AutoKillV2Loop()
             else
                 LogToFile("[V2] Remote fire error: " .. tostring(err))
             end
-            break -- one enemy per tick
+            break
         else
             LogToFile("[V2] No visible part found for " .. plr.Name)
         end
@@ -1107,7 +1116,6 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
             autoKillV2Running = true
             autoKillV2Connection = RunService.Heartbeat:Connect(AutoKillV2Loop)
             LogToFile("[V2] Heartbeat connection established")
-            InitLog()
         else
             autoKillV2Running = false
             if autoKillV2Connection then
@@ -1119,7 +1127,6 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
-
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
     Desc = "Teleports above & behind enemies",
