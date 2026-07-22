@@ -8,9 +8,17 @@ return {
         local toggle2 = tab:Toggle({ Title = "Tracers ESP", Desc = "Draws a line from screen bottom to enemy HRP", Icon = "trending-up", Flag = "TracersESP", Callback = function(v) getgenv().EspSettings.Tracers = v end })
         getgenv().currentConfig:Register("TracersESP", toggle2)
 
+        -- Check if Drawing is available (some executors don't have it)
+        if not Drawing then
+            warn("ESP: Drawing library not available – ESP will not draw lines")
+            return
+        end
+
         local espLines = {}
         local function clearESP()
-            for _, line in pairs(espLines) do line:Remove() end
+            for _, line in pairs(espLines) do
+                pcall(line.Remove, line)
+            end
             espLines = {}
         end
 
@@ -18,7 +26,10 @@ return {
             local lp = game:GetService("Players").LocalPlayer
             local cam = workspace.CurrentCamera
             local espSettings = getgenv().EspSettings
-            if not (espSettings.Skeleton or espSettings.Tracers) then clearESP() return end
+            if not (espSettings.Skeleton or espSettings.Tracers) then
+                clearESP()
+                return
+            end
             clearESP()
             local localChar = lp.Character
             local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
@@ -45,8 +56,11 @@ return {
                         local toP, toOn = cam:WorldToViewportPoint(toW)
                         if fromOn and toOn then
                             local line = Drawing.new("Line")
-                            line.Visible = true; line.Color = col; line.Thickness = 1.5
-                            line.From = Vector2.new(fromP.X, fromP.Y); line.To = Vector2.new(toP.X, toP.Y)
+                            line.Visible = true
+                            line.Color = col
+                            line.Thickness = 1.5
+                            line.From = Vector2.new(fromP.X, fromP.Y)
+                            line.To = Vector2.new(toP.X, toP.Y)
                             table.insert(espLines, line)
                         end
                     end
@@ -62,8 +76,11 @@ return {
                     local toP, toOn = cam:WorldToViewportPoint(hrp.Position)
                     if toOn then
                         local line = Drawing.new("Line")
-                        line.Visible = true; line.Color = teamColor; line.Thickness = 1.2
-                        line.From = tracerStart; line.To = Vector2.new(toP.X, toP.Y)
+                        line.Visible = true
+                        line.Color = teamColor
+                        line.Thickness = 1.2
+                        line.From = tracerStart
+                        line.To = Vector2.new(toP.X, toP.Y)
                         table.insert(espLines, line)
                     end
                 end
