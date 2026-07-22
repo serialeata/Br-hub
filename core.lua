@@ -30,14 +30,14 @@ return {
         getgenv().ConfigManager = Window.ConfigManager
         getgenv().currentConfig = getgenv().ConfigManager:CreateConfig("DefaultConfig")
 
-        -- Global settings tables
+        -- Global settings
         getgenv().SpinBotSettings = { Enabled = false, Mode = "Spin" }
         getgenv().AimbotSettings = { Enabled = false, Smoothness = 1, TargetPart = "Head", TeamCheck = false, FOV = 100, ShowFOV = true, VisibleOnly = false, MouseLock = false }
         getgenv().EspSettings = { Boxes = false, Tracers = false, Skeleton = false }
         getgenv().HitboxSettings = { Enabled = false, Size = 4, WallCheck = false }
         getgenv().Connections = {}
 
-        -- Create all tabs and store them in getgenv().Tabs
+        -- Create all tabs
         getgenv().Tabs = {
             Info = Window:Tab({ Title = "Info", Icon = "home" }),
             Movement = Window:Tab({ Title = "Movement", Icon = "user" }),
@@ -49,7 +49,7 @@ return {
             Settings = Window:Tab({ Title = "Settings", Icon = "settings" }),
         }
 
-        -- Info tab content (static buttons)
+        -- Info tab static content
         local info = getgenv().Tabs.Info
         info:Button({ Title = "Welcome to BR Hub", Desc = "Current Version: v2.4.0", Callback = function() end })
         info:Button({ Title = "Changelog", Desc = "- Config system added\n- Skeleton & Tracer ESP\n- Team-colored visuals\n- Custom themes", Callback = function() end })
@@ -63,7 +63,7 @@ return {
             vUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
         end)
 
-        -- UI toggle with RightControl
+        -- UI toggle (RightControl)
         local uiVisible = true
         game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
             if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
