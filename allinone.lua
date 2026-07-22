@@ -53,7 +53,6 @@ local Connections = {
     InfJump = nil,
     Esp = nil,
     Chams = nil,
-    MovementMaster = nil,
     CameraFOV = nil
 }
 
@@ -115,12 +114,12 @@ local customThemes = {
 for _, theme in ipairs(customThemes) do
     WindUI:AddTheme(theme)
 end
-WindUI:SetTheme("Obsidian")
+WindUI:SetTheme("Ocean)
 
 local Window = WindUI:CreateWindow({
-    Title = "BR Hub | JailBird Edition",
+    Title = "BR Hub | JailBird",
     Icon = "shield",
-    Author = "by goth",
+    Author = "by i41p on discord",
     Folder = "BR_Hub"
 })
 
@@ -457,7 +456,7 @@ InfoTab:Button({
 })
 InfoTab:Button({
     Title = "Changelog",
-    Desc = "- Config system added\n- Skeleton & Tracer ESP\n- Team-colored visuals\n- Custom themes\n- Movement Master toggle\n- TP Walk Speed slider\n- Camera FOV slider\n- Name, Health, Tool ESP\n- Gun Spoofer button\n- Heartbeat loops\n- ESP anchored above head",
+    Desc = "- Config system added\n- Skeleton & Tracer ESP\n- Team-colored visuals\n- Custom themes\n- TP Walk Speed slider\n- Camera FOV slider\n- Name, Health, Tool ESP\n- Gun Spoofer button\n- Heartbeat loops\n- ESP anchored above head",
     Callback = function() end
 })
 InfoTab:Button({
@@ -487,7 +486,7 @@ local jumpPowerSlider = MoveTab:Slider({
     Desc = "Jump height (max 50)",
     Step = 1,
     Flag = "JumpPower",
-    Value = { Min = 50, Max = 50, Default = 50 },
+    Value = { Min = 16, Max = 50, Default = 50 },
     Callback = function(value)
         getgenv().JumpPowerValue = value
         local hum = (LocalPlayer.Character or {}):FindFirstChildOfClass("Humanoid")
@@ -501,7 +500,7 @@ local tpWalkSpeedSlider = MoveTab:Slider({
     Desc = "Multiplier for TP Walk (10-200)",
     Step = 1,
     Flag = "TPWalkSpeed",
-    Value = { Min = 10, Max = 200, Default = 50 },
+    Value = { Min = 0, Max = 50, Default = 0 },
     Callback = function(value)
         getgenv().TPWalkSpeed = value
     end
@@ -590,50 +589,7 @@ local tpWalkToggle = MoveTab:Toggle({
 })
 currentConfig:Register("TPWalk", tpWalkToggle)
 
-local movementMasterToggle = MoveTab:Toggle({
-    Title = "Movement Master",
-    Desc = "Enable all movement features with loop enforcement",
-    Icon = "toggle-left",
-    Flag = "MovementMaster",
-    Callback = function(state)
-        if state then
-            walkSpeedSlider:SetValue(getgenv().WalkSpeedValue or 16)
-            jumpPowerSlider:SetValue(getgenv().JumpPowerValue or 50)
-            infJumpToggle:SetValue(true)
-            noclipToggle:SetValue(true)
-            tpWalkToggle:SetValue(true)
-            if Connections.MovementMaster then Connections.MovementMaster:Disconnect() end
-            Connections.MovementMaster = RunService.Heartbeat:Connect(function()
-                if not getgenv().MovementMasterEnabled then return end
-                local char = LocalPlayer.Character
-                if char then
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if hum then
-                        hum.WalkSpeed = getgenv().WalkSpeedValue or 16
-                        hum.UseJumpPower = true
-                        hum.JumpPower = getgenv().JumpPowerValue or 50
-                    end
-                end
-            end)
-            getgenv().MovementMasterEnabled = true
-        else
-            infJumpToggle:SetValue(false)
-            noclipToggle:SetValue(false)
-            tpWalkToggle:SetValue(false)
-            local hum = (LocalPlayer.Character or {}):FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = 16
-                hum.JumpPower = 50
-            end
-            if Connections.MovementMaster then
-                Connections.MovementMaster:Disconnect()
-                Connections.MovementMaster = nil
-            end
-            getgenv().MovementMasterEnabled = false
-        end
-    end
-})
-currentConfig:Register("MovementMaster", movementMasterToggle)
+
 
 local AimTab = Window:Tab({ Title = "Aim", Icon = "crosshair" })
 
@@ -705,7 +661,7 @@ local smoothnessSlider = AimTab:Slider({
 currentConfig:Register("Smoothness", smoothnessSlider)
 
 local hitboxToggle = AimTab:Toggle({
-    Title = "Adaptive Hitbox Expander",
+    Title = "Head Hitbox Size Changer",
     Icon = "maximize-2",
     Flag = "HitboxEnabled",
     Callback = function(v) getgenv().HitboxSettings.Enabled = v end
@@ -713,7 +669,7 @@ local hitboxToggle = AimTab:Toggle({
 currentConfig:Register("HitboxEnabled", hitboxToggle)
 
 local hitboxSizeSlider = AimTab:Slider({
-    Title = "Hitbox Size Changer",
+    Title = "Hitbox Size",
     Step = 1,
     Flag = "HitboxSize",
     Value = { Min = 2, Max = 12, Default = 6 },
