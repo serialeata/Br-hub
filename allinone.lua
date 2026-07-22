@@ -783,6 +783,48 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
+local pingChangerToggle = ExploitsTab:Toggle({
+    Title = "Ping Changer",
+    Desc = "Changes The Ping People See Pn The Leaderboard",
+    Icon = "wifi",
+    Flag = "PingChanger",
+    Callback = function(state)
+        if state then
+            if Connections.PingChanger then
+                Connections.PingChanger:Disconnect()
+            end
+            Connections.PingChanger = RunService.Heartbeat:Connect(function()
+                local latencyValue = getgenv().PingChangerValue or 0
+                local eventModule = ReplicatedStorage:FindFirstChild("GameEvents")
+                if eventModule then
+                    local latencyEvent = eventModule:FindFirstChild("Latency")
+                    if latencyEvent then
+                        latencyEvent:FireServer(latencyValue)
+                    end
+                end
+            end)
+        else
+            if Connections.PingChanger then
+                Connections.PingChanger:Disconnect()
+                Connections.PingChanger = nil
+            end
+        end
+    end
+})
+currentConfig:Register("PingChanger", pingChangerToggle)
+
+local pingChangerSlider = ExploitsTab:Slider({
+    Title = "Ping Value",
+    Desc = "Sets the ping value (-1000 to 1000) ",
+    Step = 1,
+    Flag = "PingChangerValue",
+    Value = { Min = -1000, Max = 1000, Default = 0 },
+    Callback = function(value)
+        getgenv().PingChangerValue = value
+    end
+})
+currentConfig:Register("PingChangerValue", pingChangerSlider)
+
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
     Desc = "Teleports above & behind enemies",
