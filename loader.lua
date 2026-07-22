@@ -9,9 +9,17 @@ local CHUNK_URLS = {
     "https://raw.githubusercontent.com/serialeata/Br-hub/jailbird/settings.lua",
     "https://raw.githubusercontent.com/serialeata/Br-hub/jailbird/antiaim.lua",
 }
+
 for _, url in ipairs(CHUNK_URLS) do
-    local success, result = pcall(function()
+    local success, chunk = pcall(function()
         return loadstring(game:HttpGet(url))()
     end)
-    if not success then warn("Failed: " .. url .. " | " .. tostring(result)) end
+    if not success then
+        warn("LOAD ERROR on " .. url .. ": " .. tostring(chunk))
+    elseif type(chunk) == "table" and type(chunk.Init) == "function" then
+        local ok, err = pcall(chunk.Init)
+        if not ok then
+            warn("INIT ERROR on " .. url .. ": " .. tostring(err))
+        end
+    end
 end
