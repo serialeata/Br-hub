@@ -824,6 +824,7 @@ local pingChangerSlider = ExploitsTab:Slider({
 })
 currentConfig:Register("PingChangerValue", pingChangerSlider)
 
+
 -- ==================== AUTO KILL V1 [BETA] ====================
 local autoKillV1Connection = nil
 local autoKillV1Running = false
@@ -840,42 +841,43 @@ local function IsVisible(targetPart)
 end
 
 local function AutoKillV1Loop()
-    while autoKillV1Running do
-        task.wait(0)
-        local localChar = LocalPlayer.Character
-        if not localChar then continue end
-        local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-        if not lRoot then continue end
-        local remote = ReplicatedStorage:FindFirstChild("GameEvents")
-        if remote then remote = remote:FindFirstChild("Damage") end
-        if not remote then continue end
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr == LocalPlayer then continue end
-            if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
-            if not plr.Character then continue end
-            local head = plr.Character:FindFirstChild("Head")
-            if head and IsVisible(head) then
-                local tool = plr.Character:FindFirstChildOfClass("Tool")
-                local weaponName = (tool and tool.Name) or "Bayonet"
-                local startPos = lRoot.Position
-                local endPos = head.Position
-                local direction = (endPos - startPos).Unit
-                local normal = -direction
-                remote:FireServer(
-                    plr,
-                    200,
-                    weaponName,
-                    {
-                        Normal = normal,
-                        Direction = direction,
-                        StartPosition = startPos,
-                        Instance = head,
-                        Material = Enum.Material.Plastic,
-                        EndPosition = endPos
-                    }
-                )
-                break
-            end
+    if not autoKillV1Running then return end
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+    local lRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not lRoot then return end
+
+    local remote = ReplicatedStorage:FindFirstChild("GameEvents")
+    if remote then remote = remote:FindFirstChild("Damage") end
+    if not remote then return end
+
+    local localTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    local weaponName = (localTool and localTool.Name) or "Bayonet"
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+        if not plr.Character then continue end
+        local head = plr.Character:FindFirstChild("Head")
+        if head and IsVisible(head) then
+            local startPos = lRoot.Position
+            local endPos = head.Position
+            local direction = (endPos - startPos).Unit
+            local normal = -direction
+            remote:FireServer(
+                plr,
+                200,
+                weaponName,
+                {
+                    Normal = normal,
+                    Direction = direction,
+                    StartPosition = startPos,
+                    Instance = head,
+                    Material = Enum.Material.Plastic,
+                    EndPosition = endPos
+                }
+            )
+            break
         end
     end
 end
@@ -887,16 +889,13 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
     Flag = "AutoKillV1",
     Callback = function(state)
         if state then
-            if autoKillV1Connection then
-                autoKillV1Running = false
-                coroutine.close(autoKillV1Connection)
-            end
+            if autoKillV1Connection then autoKillV1Connection:Disconnect() end
             autoKillV1Running = true
-            autoKillV1Connection = coroutine.wrap(AutoKillV1Loop)()
+            autoKillV1Connection = RunService.Heartbeat:Connect(AutoKillV1Loop)
         else
             autoKillV1Running = false
             if autoKillV1Connection then
-                coroutine.close(autoKillV1Connection)
+                autoKillV1Connection:Disconnect()
                 autoKillV1Connection = nil
             end
         end
@@ -909,50 +908,51 @@ local autoKillV2Connection = nil
 local autoKillV2Running = false
 
 local function AutoKillV2Loop()
-    while autoKillV2Running do
-        task.wait(0)
-        local localChar = LocalPlayer.Character
-        if not localChar then continue end
-        local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-        if not lRoot then continue end
-        local remote = ReplicatedStorage:FindFirstChild("GameEvents")
-        if remote then remote = remote:FindFirstChild("Damage") end
-        if not remote then continue end
-        local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr == LocalPlayer then continue end
-            if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
-            if not plr.Character then continue end
-            local tool = plr.Character:FindFirstChildOfClass("Tool")
-            local weaponName = (tool and tool.Name) or "Bayonet"
-            local targetPart = nil
-            for _, name in ipairs(priority) do
-                local part = plr.Character:FindFirstChild(name)
-                if part and IsVisible(part) then
-                    targetPart = part
-                    break
-                end
-            end
-            if targetPart then
-                local startPos = lRoot.Position
-                local endPos = targetPart.Position
-                local direction = (endPos - startPos).Unit
-                local normal = -direction
-                remote:FireServer(
-                    plr,
-                    200,
-                    weaponName,
-                    {
-                        Normal = normal,
-                        Direction = direction,
-                        StartPosition = startPos,
-                        Instance = targetPart,
-                        Material = Enum.Material.Plastic,
-                        EndPosition = endPos
-                    }
-                )
+    if not autoKillV2Running then return end
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+    local lRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not lRoot then return end
+
+    local remote = ReplicatedStorage:FindFirstChild("GameEvents")
+    if remote then remote = remote:FindFirstChild("Damage") end
+    if not remote then return end
+
+    local localTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    local weaponName = (localTool and localTool.Name) or "Bayonet"
+
+    local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+        if not plr.Character then continue end
+        local targetPart = nil
+        for _, name in ipairs(priority) do
+            local part = plr.Character:FindFirstChild(name)
+            if part and IsVisible(part) then
+                targetPart = part
                 break
             end
+        end
+        if targetPart then
+            local startPos = lRoot.Position
+            local endPos = targetPart.Position
+            local direction = (endPos - startPos).Unit
+            local normal = -direction
+            remote:FireServer(
+                plr,
+                200,
+                weaponName,
+                {
+                    Normal = normal,
+                    Direction = direction,
+                    StartPosition = startPos,
+                    Instance = targetPart,
+                    Material = Enum.Material.Plastic,
+                    EndPosition = endPos
+                }
+            )
+            break
         end
     end
 end
@@ -964,22 +964,21 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     Flag = "AutoKillV2",
     Callback = function(state)
         if state then
-            if autoKillV2Connection then
-                autoKillV2Running = false
-                coroutine.close(autoKillV2Connection)
-            end
+            if autoKillV2Connection then autoKillV2Connection:Disconnect() end
             autoKillV2Running = true
-            autoKillV2Connection = coroutine.wrap(AutoKillV2Loop)()
+            autoKillV2Connection = RunService.Heartbeat:Connect(AutoKillV2Loop)
         else
             autoKillV2Running = false
             if autoKillV2Connection then
-                coroutine.close(autoKillV2Connection)
+                autoKillV2Connection:Disconnect()
                 autoKillV2Connection = nil
             end
         end
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
+
+
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
     Desc = "Teleports above & behind enemies",
