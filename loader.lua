@@ -11,6 +11,7 @@ local CHUNK_URLS = {
 }
 
 for _, url in ipairs(CHUNK_URLS) do
+    print("Loading: " .. url)
     local success, chunk = pcall(function()
         return loadstring(game:HttpGet(url))()
     end)
@@ -20,6 +21,8 @@ for _, url in ipairs(CHUNK_URLS) do
         local ok, err = pcall(chunk.Init)
         if not ok then
             warn("INIT ERROR on " .. url .. ": " .. tostring(err))
+        else
+            print("Loaded: " .. url)
         end
     end
 end
