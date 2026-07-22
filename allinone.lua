@@ -785,7 +785,7 @@ local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
 local pingChangerToggle = ExploitsTab:Toggle({
     Title = "Ping Changer",
-    Desc = "Changes The Ping People See Pn The Leaderboard",
+    Desc = "Changes The Ping People See Pm The Leaderboard",
     Icon = "wifi",
     Flag = "PingChanger",
     Callback = function(state)
@@ -815,10 +815,10 @@ currentConfig:Register("PingChanger", pingChangerToggle)
 
 local pingChangerSlider = ExploitsTab:Slider({
     Title = "Ping Value",
-    Desc = "Sets the ping value (-1000 to 1000) ",
+    Desc = "Sets the ping value (0 to 1000) ",
     Step = 1,
     Flag = "PingChangerValue",
-    Value = { Min = -1000, Max = 1000, Default = 0 },
+    Value = { Min = 0, Max = 1000, Default = 0 },
     Callback = function(value)
         getgenv().PingChangerValue = value
     end
