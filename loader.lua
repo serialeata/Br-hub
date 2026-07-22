@@ -24,5 +24,7 @@ for _, url in ipairs(CHUNK_URLS) do
         else
             print("Loaded: " .. url)
         end
+    else
+        warn("Chunk did not return a table with Init: " .. url)
     end
 end
