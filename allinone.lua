@@ -847,7 +847,10 @@ local function AutoKillV1Loop()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
-        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+        -- Skip teammates only if teams are defined
+        if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then
+            continue
+        end
         if not plr.Character then continue end
         local head = plr.Character:FindFirstChild("Head")
         if head and IsOnScreen(head) then
@@ -875,7 +878,7 @@ end
 
 local autoKillV1Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V1 [BETA]",
-    Desc = "Targets head if on screen",
+    Desc = "Targets head if on screen (skips teammates)",
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
@@ -912,7 +915,9 @@ local function AutoKillV2Loop()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
-        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+        if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then
+            continue
+        end
         if not plr.Character then continue end
         local targetPart = nil
         for _, name in ipairs(priority) do
@@ -947,7 +952,7 @@ end
 
 local autoKillV2Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V2 [BETA]",
-    Desc = "Targets any on-screen part with priority (Head > Torso > Arms > Legs)",
+    Desc = "Targets any on-screen part (skips teammates)",
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
