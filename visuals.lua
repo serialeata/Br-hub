@@ -1,6 +1,7 @@
 return {
     Init = function()
-        local tab = getgenv().Window:Tab({ Title = "Visuals", Icon = "eye" })
+        local tab = getgenv().Tabs.Visuals
+
         local toggle = tab:Toggle({ Title = "Player Wallhack (Chams)", Desc = "See players outlines through walls", Icon = "users", Flag = "Chams", Callback = function(state)
             if state then
                 local function apply(p)
@@ -53,11 +54,13 @@ return {
             stroke.Color = Color3.fromRGB(v, g, b)
         end })
         getgenv().currentConfig:Register("FOVRed", slider)
+
         local slider2 = tab:Slider({ Title = "FOV Green", Step = 1, Flag = "FOVGreen", Value = { Min = 0, Max = 255, Default = 0 }, Callback = function(v)
             local r,g,b = stroke.Color.R*255, stroke.Color.G*255, stroke.Color.B*255
             stroke.Color = Color3.fromRGB(r, v, b)
         end })
         getgenv().currentConfig:Register("FOVGreen", slider2)
+
         local slider3 = tab:Slider({ Title = "FOV Blue", Step = 1, Flag = "FOVBlue", Value = { Min = 0, Max = 255, Default = 100 }, Callback = function(v)
             local r,g,b = stroke.Color.R*255, stroke.Color.G*255, stroke.Color.B*255
             stroke.Color = Color3.fromRGB(r, g, v)
