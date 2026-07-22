@@ -1,14 +1,19 @@
 return {
     Init = function()
-        local tab = getgenv().Window:Tab({ Title = "Movement", Icon = "user" })
+        local tab = getgenv().Tabs.Movement
+
         local slider = tab:Slider({ Title = "WalkSpeed", Desc = "Movement speed", Step = 1, Flag = "WalkSpeed", Value = { Min = 16, Max = 200, Default = 16 }, Callback = function(value) local hum = (game.Players.LocalPlayer.Character or {}):FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = value end end })
         getgenv().currentConfig:Register("WalkSpeed", slider)
+
         local slider2 = tab:Slider({ Title = "JumpPower", Desc = "Jump height", Step = 1, Flag = "JumpPower", Value = { Min = 50, Max = 300, Default = 50 }, Callback = function(value) local hum = (game.Players.LocalPlayer.Character or {}):FindFirstChildOfClass("Humanoid") if hum then hum.UseJumpPower = true; hum.JumpPower = value end end })
         getgenv().currentConfig:Register("JumpPower", slider2)
+
         local toggle = tab:Toggle({ Title = "Infinite Jump", Desc = "Jump continuously", Icon = "chevrons-up", Flag = "InfiniteJump", Callback = function(state) if state then getgenv().Connections.InfJump = game:GetService("UserInputService").JumpRequest:Connect(function() local char = game.Players.LocalPlayer.Character if char and char:FindFirstChild("Humanoid") then char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end) else if getgenv().Connections.InfJump then getgenv().Connections.InfJump:Disconnect() getgenv().Connections.InfJump = nil end end end })
         getgenv().currentConfig:Register("InfiniteJump", toggle)
+
         local toggle2 = tab:Toggle({ Title = "Noclip", Desc = "Through walls", Icon = "ghost", Flag = "Noclip", Callback = function(state) if state then getgenv().Connections.Noclip = game:GetService("RunService").Stepped:Connect(function() local char = game.Players.LocalPlayer.Character if char then for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end) else if getgenv().Connections.Noclip then getgenv().Connections.Noclip:Disconnect() getgenv().Connections.Noclip = nil end end end })
         getgenv().currentConfig:Register("Noclip", toggle2)
+
         local toggle3 = tab:Toggle({ Title = "TP Walk", Desc = "Forced high-speed movement", Icon = "zap", Flag = "TPWalk", Callback = function(state) local enabled = state if state then if getgenv().Connections.TPWalk then getgenv().Connections.TPWalk:Disconnect() end getgenv().Connections.TPWalk = game:GetService("RunService").Heartbeat:Connect(function(dt) if not enabled then return end local char = game.Players.LocalPlayer.Character if not char then return end local hum = char:FindFirstChildOfClass("Humanoid") local root = char:FindFirstChild("HumanoidRootPart") if not hum or not root then return end local dir = hum.MoveDirection if dir.Magnitude > 0.1 then root.CFrame = root.CFrame + (dir * 50 * dt) end end) else if getgenv().Connections.TPWalk then getgenv().Connections.TPWalk:Disconnect() getgenv().Connections.TPWalk = nil end end end })
         getgenv().currentConfig:Register("TPWalk", toggle3)
     end
