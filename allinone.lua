@@ -783,6 +783,77 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
+local autoKillConnection = nil
+local lastAutoKillTime = 0
+local AUTO_KILL_COOLDOWN = 0.1
+
+local function AutoKillLoop()
+    if not getgenv().AutoKillEnabled then return end
+    local now = tick()
+    if now - lastAutoKillTime < AUTO_KILL_COOLDOWN then return end
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+    local lRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not lRoot then return end
+    local remote = ReplicatedStorage:FindFirstChild("GameEvents")
+    if remote then remote = remote:FindFirstChild("Damage") end
+    if not remote then return end
+    local enemies = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+        if plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            if head and IsVisible(head) then
+                table.insert(enemies, {Player = plr, Head = head})
+            end
+        end
+    end
+    for _, enemy in ipairs(enemies) do
+        local target = enemy.Player
+        local head = enemy.Head
+        local startPos = lRoot.Position
+        local endPos = head.Position
+        local direction = (endPos - startPos).Unit
+        local normal = -direction
+        remote:FireServer(
+            target,
+            200,
+            "Bayonet",
+            {
+                Normal = normal,
+                Direction = direction,
+                StartPosition = startPos,
+                Instance = head,
+                Material = Enum.Material.Plastic,
+                EndPosition = endPos
+            }
+        )
+        lastAutoKillTime = now
+        break
+    end
+end
+
+local autoKillToggle = ExploitsTab:Toggle({
+    Title = "Auto Kill",
+    Desc = "Automatically attempts to knife every visible enemy",
+    Icon = "skull",
+    Flag = "AutoKill",
+    Callback = function(state)
+        getgenv().AutoKillEnabled = state
+        if state then
+            if autoKillConnection then autoKillConnection:Disconnect() end
+            autoKillConnection = RunService.Heartbeat:Connect(AutoKillLoop)
+        else
+            if autoKillConnection then
+                autoKillConnection:Disconnect()
+                autoKillConnection = nil
+            end
+        end
+    end
+})
+currentConfig:Register("AutoKill", autoKillToggle)
+
 local pingChangerToggle = ExploitsTab:Toggle({
     Title = "Ping Changer",
     Desc = "Changes The Ping People See Pm The Leaderboard",
