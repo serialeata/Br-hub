@@ -784,6 +784,7 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
 -- ==================== AUTO KILL V1 [BETA] ====================
+-- ==================== AUTO KILL V1 [BETA] ====================
 local autoKillV1Connection = nil
 local autoKillV1Running = false
 
@@ -950,8 +951,7 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
         end
     end
 })
-currentConfig:Register("AutoKillV2", autoKillV2Toggle)    Title = "Ping Changer",
-    Desc = "Changes The Ping People See Pm The Leaderboard",
+currentConfig:Register("AutoKillV2", autoKillV2Toggle)    Desc = "Changes The Ping People See Pm The Leaderboard",
     Icon = "wifi",
     Flag = "PingChanger",
     Callback = function(state)
