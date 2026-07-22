@@ -784,10 +784,21 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
 local autoKillV1Connection = nil
-local autoKillV2Connection = nil
+local autoKillV1Running = false
+
+local function IsVisible(targetPart)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+    params.IgnoreWater = true
+    local origin = Camera.CFrame.Position
+    local dir = (targetPart.Position - origin).Unit * 1000
+    local result = workspace:Raycast(origin, dir, params)
+    return result == nil
+end
 
 local function AutoKillV1Loop()
-    while getgenv().AutoKillV1Enabled do
+    while autoKillV1Running do
         task.wait(0)
         local localChar = LocalPlayer.Character
         if not localChar then continue end
@@ -803,7 +814,7 @@ local function AutoKillV1Loop()
             local head = plr.Character:FindFirstChild("Head")
             if head and IsVisible(head) then
                 local tool = plr.Character:FindFirstChildOfClass("Tool")
-                local weaponName = tool and tool.Name or "Bayonet"
+                local weaponName = (tool and tool.Name) or "Bayonet"
                 local startPos = lRoot.Position
                 local endPos = head.Position
                 local direction = (endPos - startPos).Unit
@@ -827,8 +838,45 @@ local function AutoKillV1Loop()
     end
 end
 
+local autoKillV1Toggle = ExploitsTab:Toggle({
+    Title = "Auto Kill V1 [BETA]",
+    Desc = "Targets only if head is visible",
+    Icon = "target",
+    Flag = "AutoKillV1",
+    Callback = function(state)
+        if state then
+            if autoKillV1Connection then
+                autoKillV1Running = false
+                coroutine.close(autoKillV1Connection)
+            end
+            autoKillV1Running = true
+            autoKillV1Connection = coroutine.wrap(AutoKillV1Loop)()
+        else
+            autoKillV1Running = false
+            if autoKillV1Connection then
+                coroutine.close(autoKillV1Connection)
+                autoKillV1Connection = nil
+            end
+        end
+    end
+})
+currentConfig:Register("AutoKillV1", autoKillV1Toggle)
+local autoKillV2Connection = nil
+local autoKillV2Running = false
+
+local function IsVisible(targetPart)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+    params.IgnoreWater = true
+    local origin = Camera.CFrame.Position
+    local dir = (targetPart.Position - origin).Unit * 1000
+    local result = workspace:Raycast(origin, dir, params)
+    return result == nil
+end
+
 local function AutoKillV2Loop()
-    while getgenv().AutoKillV2Enabled do
+    while autoKillV2Running do
         task.wait(0)
         local localChar = LocalPlayer.Character
         if not localChar then continue end
@@ -843,7 +891,7 @@ local function AutoKillV2Loop()
             if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
             if not plr.Character then continue end
             local tool = plr.Character:FindFirstChildOfClass("Tool")
-            local weaponName = tool and tool.Name or "Bayonet"
+            local weaponName = (tool and tool.Name) or "Bayonet"
             local targetPart = nil
             for _, name in ipairs(priority) do
                 local part = plr.Character:FindFirstChild(name)
@@ -876,37 +924,21 @@ local function AutoKillV2Loop()
     end
 end
 
-local autoKillV1Toggle = ExploitsTab:Toggle({
-    Title = "Auto Kill V1 [BETA]",
-    Desc = "Targets only if head is visible",
-    Icon = "target",
-    Flag = "AutoKillV1",
-    Callback = function(state)
-        getgenv().AutoKillV1Enabled = state
-        if state then
-            if autoKillV1Connection then autoKillV1Connection:Disconnect() end
-            autoKillV1Connection = coroutine.wrap(AutoKillV1Loop)()
-        else
-            if autoKillV1Connection then
-                coroutine.close(autoKillV1Connection)
-                autoKillV1Connection = nil
-            end
-        end
-    end
-})
-currentConfig:Register("AutoKillV1", autoKillV1Toggle)
-
 local autoKillV2Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V2 [BETA]",
     Desc = "Targets any visible part with priority (Head > Torso > Arms > Legs)",
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
-        getgenv().AutoKillV2Enabled = state
         if state then
-            if autoKillV2Connection then autoKillV2Connection:Disconnect() end
+            if autoKillV2Connection then
+                autoKillV2Running = false
+                coroutine.close(autoKillV2Connection)
+            end
+            autoKillV2Running = true
             autoKillV2Connection = coroutine.wrap(AutoKillV2Loop)()
         else
+            autoKillV2Running = false
             if autoKillV2Connection then
                 coroutine.close(autoKillV2Connection)
                 autoKillV2Connection = nil
@@ -915,7 +947,6 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
-
 local pingChangerToggle = ExploitsTab:Toggle({
     Title = "Ping Changer",
     Desc = "Changes The Ping People See Pm The Leaderboard",
