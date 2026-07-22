@@ -20,7 +20,8 @@ getgenv().AimbotSettings = {
     FOV = 100,
     ShowFOV = false,
     VisibleOnly = false,
-    MouseLock = false
+    RainbowFOV = false,
+    FOVTransparency = 0.8
 }
 
 getgenv().EspSettings = {
@@ -29,7 +30,8 @@ getgenv().EspSettings = {
     Skeleton = false,
     Name = false,
     Health = false,
-    Tool = false
+    Tool = false,
+    Rainbow = false
 }
 
 getgenv().HitboxSettings = {
@@ -114,7 +116,7 @@ local customThemes = {
 for _, theme in ipairs(customThemes) do
     WindUI:AddTheme(theme)
 end
-WindUI:SetTheme("Ocean)
+WindUI:SetTheme("Ocean")
 
 local Window = WindUI:CreateWindow({
     Title = "BR Hub | JailBird",
@@ -275,11 +277,12 @@ RunService.Heartbeat:Connect(function()
                 CFrame.new(Camera.CFrame.Position, targetPos),
                 1 / aimSettings.Smoothness
             )
-            if aimSettings.MouseLock then
-                local mouse = LocalPlayer:GetMouse()
-                mouse.X, mouse.Y = screenCenter.X, screenCenter.Y
-            end
         end
+    end
+
+    if aimSettings.RainbowFOV and fovFrame.Visible then
+        local hue = (tick() * 0.5) % 1
+        fovStroke.Color = Color3.fromHSV(hue, 1, 1)
     end
 end)
 
@@ -347,6 +350,12 @@ local function updateESP()
 
     clearESP()
 
+    local rainbowColor
+    if espSettings.Rainbow then
+        local hue = (tick() * 0.2) % 1
+        rainbowColor = Color3.fromHSV(hue, 1, 1)
+    end
+
     local localChar = LocalPlayer.Character
     local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
     local tracerStart = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
@@ -375,6 +384,7 @@ local function updateESP()
         else
             teamColor = Color3.fromRGB(255, 50, 50)
         end
+        local displayColor = espSettings.Rainbow and rainbowColor or teamColor
 
         if espSettings.Skeleton and torso and head and leftArm and rightArm and leftLeg and rightLeg then
             local function worldToScreen(pos)
@@ -392,19 +402,19 @@ local function updateESP()
                     if line then table.insert(espObjects, line) end
                 end
             end
-            drawLine3D(torso.Position, head.Position, teamColor)
-            drawLine3D(torso.Position, leftArm.Position, teamColor)
-            drawLine3D(torso.Position, rightArm.Position, teamColor)
+            drawLine3D(torso.Position, head.Position, displayColor)
+            drawLine3D(torso.Position, leftArm.Position, displayColor)
+            drawLine3D(torso.Position, rightArm.Position, displayColor)
             local leftFootPos = leftLeg.CFrame * Vector3.new(0, -leftLeg.Size.Y / 2, 0)
             local rightFootPos = rightLeg.CFrame * Vector3.new(0, -rightLeg.Size.Y / 2, 0)
-            drawLine3D(torso.Position, leftFootPos, teamColor)
-            drawLine3D(torso.Position, rightFootPos, teamColor)
+            drawLine3D(torso.Position, leftFootPos, displayColor)
+            drawLine3D(torso.Position, rightFootPos, displayColor)
         end
 
         if espSettings.Tracers and hrp then
             local toPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             if onScreen then
-                local line = createLine2D(tracerStart, Vector2.new(toPos.X, toPos.Y), teamColor, 2)
+                local line = createLine2D(tracerStart, Vector2.new(toPos.X, toPos.Y), displayColor, 2)
                 if line then table.insert(espObjects, line) end
             end
         end
@@ -419,14 +429,14 @@ local function updateESP()
 
                 if espSettings.Name and plr.Name then
                     local pos = Vector2.new(basePos.X, currentY - yOffset)
-                    local label = createText(plr.Name, pos, teamColor, 14, true)
+                    local label = createText(plr.Name, pos, displayColor, 14, true)
                     if label then table.insert(espObjects, label) end
                     yOffset = yOffset + 20
                 end
 
                 if espSettings.Health and humanoid then
                     local healthPercent = math.floor((humanoid.Health / humanoid.MaxHealth) * 100)
-                    local healthColor = Color3.fromRGB(255 - (healthPercent * 2.55), healthPercent * 2.55, 0)
+                    local healthColor = espSettings.Rainbow and rainbowColor or Color3.fromRGB(255 - (healthPercent * 2.55), healthPercent * 2.55, 0)
                     local pos = Vector2.new(basePos.X, currentY - yOffset)
                     local label = createText(healthPercent .. "%", pos, healthColor, 12, true)
                     if label then table.insert(espObjects, label) end
@@ -437,7 +447,7 @@ local function updateESP()
                     local tool = char:FindFirstChildOfClass("Tool")
                     if tool then
                         local pos = Vector2.new(basePos.X, currentY - yOffset)
-                        local label = createText("[" .. tool.Name .. "]", pos, Color3.fromRGB(255,255,255), 11, true)
+                        local label = createText("[" .. tool.Name .. "]", pos, displayColor, 11, true)
                         if label then table.insert(espObjects, label) end
                     end
                 end
@@ -589,8 +599,6 @@ local tpWalkToggle = MoveTab:Toggle({
 })
 currentConfig:Register("TPWalk", tpWalkToggle)
 
-
-
 local AimTab = Window:Tab({ Title = "Aim", Icon = "crosshair" })
 
 local aimbotToggle = AimTab:Toggle({
@@ -651,6 +659,33 @@ local fovThicknessSlider = AimTab:Slider({
 })
 currentConfig:Register("FOVThickness", fovThicknessSlider)
 
+local fovTransparencySlider = AimTab:Slider({
+    Title = "FOV Circle Transparency",
+    Desc = "Adjusts transparency of the FOV circle",
+    Step = 0.05,
+    Flag = "FOVTransparency",
+    Value = { Min = 0, Max = 1, Default = 0.8 },
+    Callback = function(v)
+        fovStroke.Transparency = v
+        getgenv().AimbotSettings.FOVTransparency = v
+    end
+})
+currentConfig:Register("FOVTransparency", fovTransparencySlider)
+
+local rainbowFOVToggle = AimTab:Toggle({
+    Title = "Rainbow FOV",
+    Desc = "Smoothly cycles the FOV circle color",
+    Icon = "palette",
+    Flag = "RainbowFOV",
+    Callback = function(v)
+        getgenv().AimbotSettings.RainbowFOV = v
+        if not v then
+            fovStroke.Color = Color3.fromRGB(255, 0, 100)
+        end
+    end
+})
+currentConfig:Register("RainbowFOV", rainbowFOVToggle)
+
 local smoothnessSlider = AimTab:Slider({
     Title = "Aimbot Smoothness",
     Step = 1,
@@ -684,15 +719,6 @@ local hitboxWallCheckToggle = AimTab:Toggle({
     Callback = function(v) getgenv().HitboxSettings.WallCheck = v end
 })
 currentConfig:Register("HitboxWallCheck", hitboxWallCheckToggle)
-
-local mouseLockToggle = AimTab:Toggle({
-    Title = "Mouse Lock (Aimbot)",
-    Desc = "Locks mouse to screen centre",
-    Icon = "lock",
-    Flag = "MouseLock",
-    Callback = function(v) getgenv().AimbotSettings.MouseLock = v end
-})
-currentConfig:Register("MouseLock", mouseLockToggle)
 
 local AntiAimTab = Window:Tab({ Title = "Anti Aim", Icon = "shield-off" })
 
@@ -895,6 +921,15 @@ local toolEspToggle = VisualsTab:Toggle({
     Callback = function(state) getgenv().EspSettings.Tool = state end
 })
 currentConfig:Register("ToolESP", toolEspToggle)
+
+local rainbowEspToggle = VisualsTab:Toggle({
+    Title = "Rainbow ESP",
+    Desc = "Cycles ESP colors smoothly",
+    Icon = "palette",
+    Flag = "RainbowESP",
+    Callback = function(v) getgenv().EspSettings.Rainbow = v end
+})
+currentConfig:Register("RainbowESP", rainbowEspToggle)
 
 local chamsToggle = VisualsTab:Toggle({
     Title = "Player Wallhack (Chams)",
