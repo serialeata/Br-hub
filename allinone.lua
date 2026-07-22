@@ -825,9 +825,44 @@ local pingChangerSlider = ExploitsTab:Slider({
 currentConfig:Register("PingChangerValue", pingChangerSlider)
 
 
--- ==================== AUTO KILL V1 [BETA] ====================
+-- ==================== AUTO KILL V1 [BETA] WITH FILE LOGGING ====================
 local autoKillV1Connection = nil
 local autoKillV1Running = false
+
+-- Logging function: writes to console and file
+local function LogToFile(message, level)
+    local timestamp = os.date("%H:%M:%S")
+    local formatted = string.format("[%s] %s", timestamp, message)
+    print(formatted)
+    local success, err = pcall(function()
+        local file = io.open("autokill_log.txt", "a")
+        if file then
+            file:write(formatted .. "\n")
+            file:close()
+        else
+            print("Log file could not be opened: " .. tostring(err))
+        end
+    end)
+    if not success then
+        print("File logging failed: " .. tostring(err))
+    end
+end
+
+-- Clear log file on toggle (optional) – we won't clear, we'll append
+local function InitLog()
+    local success, err = pcall(function()
+        local file = io.open("autokill_log.txt", "w")
+        if file then
+            file:write(string.rep("=", 50) .. "\n")
+            file:write("Auto Kill Log - " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n")
+            file:write(string.rep("=", 50) .. "\n")
+            file:close()
+        end
+    end)
+    if not success then
+        print("Could not initialize log file: " .. tostring(err))
+    end
+end
 
 local function IsVisible(targetPart)
     local params = RaycastParams.new()
@@ -841,44 +876,89 @@ local function IsVisible(targetPart)
 end
 
 local function AutoKillV1Loop()
-    if not autoKillV1Running then return end
+    if not autoKillV1Running then
+        LogToFile("[V1] Loop called but running is false – exiting")
+        return
+    end
+    LogToFile("[V1] Heartbeat tick")
+
     local localChar = LocalPlayer.Character
-    if not localChar then return end
+    if not localChar then
+        LogToFile("[V1] No local character")
+        return
+    end
     local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-    if not lRoot then return end
+    if not lRoot then
+        LogToFile("[V1] No humanoid root part")
+        return
+    end
 
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
-    if not remote then return end
+    if not remote then
+        LogToFile("[V1] Remote not found! Check path: ReplicatedStorage.GameEvents.Damage")
+        return
+    end
+    LogToFile("[V1] Remote found")
 
     local localTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local weaponName = (localTool and localTool.Name) or "Bayonet"
+    LogToFile("[V1] Weapon name: " .. weaponName)
 
+    local enemiesChecked = 0
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then continue end
-        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
-        if not plr.Character then continue end
+        if plr == LocalPlayer then
+            -- LogToFile("[V1] Skipping self")
+            continue
+        end
+        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then
+            LogToFile("[V1] Skipping teammate: " .. plr.Name)
+            continue
+        end
+        if not plr.Character then
+            LogToFile("[V1] Player " .. plr.Name .. " has no character")
+            continue
+        end
         local head = plr.Character:FindFirstChild("Head")
-        if head and IsVisible(head) then
+        if not head then
+            LogToFile("[V1] Player " .. plr.Name .. " has no Head")
+            continue
+        end
+        enemiesChecked = enemiesChecked + 1
+        LogToFile("[V1] Checking " .. plr.Name .. " Head visibility...")
+        local visible = IsVisible(head)
+        LogToFile("[V1] Head visible: " .. tostring(visible) .. " for " .. plr.Name)
+        if visible then
+            LogToFile("[V1] Firing remote for " .. plr.Name)
             local startPos = lRoot.Position
             local endPos = head.Position
             local direction = (endPos - startPos).Unit
             local normal = -direction
-            remote:FireServer(
-                plr,
-                200,
-                weaponName,
-                {
-                    Normal = normal,
-                    Direction = direction,
-                    StartPosition = startPos,
-                    Instance = head,
-                    Material = Enum.Material.Plastic,
-                    EndPosition = endPos
-                }
-            )
-            break
+            local success, err = pcall(function()
+                remote:FireServer(
+                    plr,
+                    200,
+                    weaponName,
+                    {
+                        Normal = normal,
+                        Direction = direction,
+                        StartPosition = startPos,
+                        Instance = head,
+                        Material = Enum.Material.Plastic,
+                        EndPosition = endPos
+                    }
+                )
+            end)
+            if success then
+                LogToFile("[V1] Remote fired successfully for " .. plr.Name)
+            else
+                LogToFile("[V1] Remote fire error: " .. tostring(err))
+            end
+            break -- only one enemy per tick
         end
+    end
+    if enemiesChecked == 0 then
+        LogToFile("[V1] No valid enemies found this tick")
     end
 end
 
@@ -888,72 +968,127 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
+        LogToFile("[V1] Toggle state: " .. tostring(state))
         if state then
-            if autoKillV1Connection then autoKillV1Connection:Disconnect() end
+            if autoKillV1Connection then
+                autoKillV1Connection:Disconnect()
+                autoKillV1Connection = nil
+            end
             autoKillV1Running = true
             autoKillV1Connection = RunService.Heartbeat:Connect(AutoKillV1Loop)
+            LogToFile("[V1] Heartbeat connection established")
+            -- Write a header to separate runs
+            InitLog()
         else
             autoKillV1Running = false
             if autoKillV1Connection then
                 autoKillV1Connection:Disconnect()
                 autoKillV1Connection = nil
+                LogToFile("[V1] Heartbeat connection stopped")
             end
         end
     end
 })
 currentConfig:Register("AutoKillV1", autoKillV1Toggle)
 
--- ==================== AUTO KILL V2 [BETA] ====================
+-- ==================== AUTO KILL V2 [BETA] WITH FILE LOGGING ====================
 local autoKillV2Connection = nil
 local autoKillV2Running = false
 
 local function AutoKillV2Loop()
-    if not autoKillV2Running then return end
+    if not autoKillV2Running then
+        LogToFile("[V2] Loop called but running is false – exiting")
+        return
+    end
+    LogToFile("[V2] Heartbeat tick")
+
     local localChar = LocalPlayer.Character
-    if not localChar then return end
+    if not localChar then
+        LogToFile("[V2] No local character")
+        return
+    end
     local lRoot = localChar:FindFirstChild("HumanoidRootPart")
-    if not lRoot then return end
+    if not lRoot then
+        LogToFile("[V2] No humanoid root part")
+        return
+    end
 
     local remote = ReplicatedStorage:FindFirstChild("GameEvents")
     if remote then remote = remote:FindFirstChild("Damage") end
-    if not remote then return end
+    if not remote then
+        LogToFile("[V2] Remote not found! Check path: ReplicatedStorage.GameEvents.Damage")
+        return
+    end
+    LogToFile("[V2] Remote found")
 
     local localTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local weaponName = (localTool and localTool.Name) or "Bayonet"
+    LogToFile("[V2] Weapon name: " .. weaponName)
 
     local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+    local enemiesChecked = 0
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == LocalPlayer then continue end
-        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
-        if not plr.Character then continue end
+        if plr == LocalPlayer then
+            -- LogToFile("[V2] Skipping self")
+            continue
+        end
+        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then
+            LogToFile("[V2] Skipping teammate: " .. plr.Name)
+            continue
+        end
+        if not plr.Character then
+            LogToFile("[V2] Player " .. plr.Name .. " has no character")
+            continue
+        end
+        enemiesChecked = enemiesChecked + 1
         local targetPart = nil
         for _, name in ipairs(priority) do
             local part = plr.Character:FindFirstChild(name)
-            if part and IsVisible(part) then
-                targetPart = part
-                break
+            if part then
+                LogToFile("[V2] Checking " .. plr.Name .. " " .. name .. " visibility...")
+                local visible = IsVisible(part)
+                LogToFile("[V2] Part " .. name .. " visible: " .. tostring(visible))
+                if visible then
+                    targetPart = part
+                    break
+                end
+            else
+                LogToFile("[V2] Part " .. name .. " not found for " .. plr.Name)
             end
         end
         if targetPart then
+            LogToFile("[V2] Firing remote for " .. plr.Name .. " target part: " .. targetPart.Name)
             local startPos = lRoot.Position
             local endPos = targetPart.Position
             local direction = (endPos - startPos).Unit
             local normal = -direction
-            remote:FireServer(
-                plr,
-                200,
-                weaponName,
-                {
-                    Normal = normal,
-                    Direction = direction,
-                    StartPosition = startPos,
-                    Instance = targetPart,
-                    Material = Enum.Material.Plastic,
-                    EndPosition = endPos
-                }
-            )
-            break
+            local success, err = pcall(function()
+                remote:FireServer(
+                    plr,
+                    200,
+                    weaponName,
+                    {
+                        Normal = normal,
+                        Direction = direction,
+                        StartPosition = startPos,
+                        Instance = targetPart,
+                        Material = Enum.Material.Plastic,
+                        EndPosition = endPos
+                    }
+                )
+            end)
+            if success then
+                LogToFile("[V2] Remote fired successfully for " .. plr.Name)
+            else
+                LogToFile("[V2] Remote fire error: " .. tostring(err))
+            end
+            break -- one enemy per tick
+        else
+            LogToFile("[V2] No visible part found for " .. plr.Name)
         end
+    end
+    if enemiesChecked == 0 then
+        LogToFile("[V2] No valid enemies found this tick")
     end
 end
 
@@ -963,21 +1098,27 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
+        LogToFile("[V2] Toggle state: " .. tostring(state))
         if state then
-            if autoKillV2Connection then autoKillV2Connection:Disconnect() end
+            if autoKillV2Connection then
+                autoKillV2Connection:Disconnect()
+                autoKillV2Connection = nil
+            end
             autoKillV2Running = true
             autoKillV2Connection = RunService.Heartbeat:Connect(AutoKillV2Loop)
+            LogToFile("[V2] Heartbeat connection established")
+            InitLog()
         else
             autoKillV2Running = false
             if autoKillV2Connection then
                 autoKillV2Connection:Disconnect()
                 autoKillV2Connection = nil
+                LogToFile("[V2] Heartbeat connection stopped")
             end
         end
     end
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
-
 
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
