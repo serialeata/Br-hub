@@ -845,9 +845,6 @@ local function AutoKillV1Loop()
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
 
-    local localTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    local weaponName = (localTool and localTool.Name) or "Bayonet"
-
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr == LocalPlayer then continue end
         if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
@@ -861,7 +858,7 @@ local function AutoKillV1Loop()
             remote:FireServer(
                 plr,
                 200,
-                weaponName,
+                "Bayonet",
                 {
                     Normal = normal,
                     Direction = direction,
@@ -878,7 +875,7 @@ end
 
 local autoKillV1Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V1 [BETA]",
-    Desc = "Targets only if head is on screen",
+    Desc = "Targets head if on screen",
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
@@ -911,8 +908,6 @@ local function AutoKillV2Loop()
     if remote then remote = remote:FindFirstChild("Damage") end
     if not remote then return end
 
-    local localTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    local weaponName = (localTool and localTool.Name) or "Bayonet"
     local priority = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
 
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -935,7 +930,7 @@ local function AutoKillV2Loop()
             remote:FireServer(
                 plr,
                 200,
-                weaponName,
+                "Bayonet",
                 {
                     Normal = normal,
                     Direction = direction,
@@ -969,7 +964,11 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
         end
     end
 })
-currentConfig:Register("AutoKillV2", autoKillV2Toggle)local killAllToggle = ExploitsTab:Toggle({
+currentConfig:Register("AutoKillV2", autoKillV2Toggle)
+
+
+
+local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
     Desc = "Teleports above & behind enemies",
     Icon = "swords",
