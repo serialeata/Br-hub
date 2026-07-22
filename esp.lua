@@ -1,8 +1,10 @@
 return {
     Init = function()
-        local tab = getgenv().Window:Tab({ Title = "Visuals", Icon = "eye" })
+        local tab = getgenv().Tabs.Visuals
+
         local toggle = tab:Toggle({ Title = "Skeleton ESP", Desc = "Draws lines connecting body parts", Icon = "activity", Flag = "SkeletonESP", Callback = function(v) getgenv().EspSettings.Skeleton = v end })
         getgenv().currentConfig:Register("SkeletonESP", toggle)
+
         local toggle2 = tab:Toggle({ Title = "Tracers ESP", Desc = "Draws a line from screen bottom to enemy HRP", Icon = "trending-up", Flag = "TracersESP", Callback = function(v) getgenv().EspSettings.Tracers = v end })
         getgenv().currentConfig:Register("TracersESP", toggle2)
 
