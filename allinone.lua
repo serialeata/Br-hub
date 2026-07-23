@@ -46,6 +46,8 @@ getgenv().TPWalkSpeed = 50
 getgenv().CameraFOVEnabled = false
 getgenv().CameraFOVValue = 70
 
+getgenv().RandomHighPingEnabled = false
+
 local Connections = {
     Spin = nil,
     Noclip = nil,
@@ -55,7 +57,8 @@ local Connections = {
     InfJump = nil,
     Esp = nil,
     Chams = nil,
-    CameraFOV = nil
+    CameraFOV = nil,
+    PingChanger = nil
 }
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -116,7 +119,17 @@ local customThemes = {
 for _, theme in ipairs(customThemes) do
     WindUI:AddTheme(theme)
 end
-WindUI:SetTheme("Ocean")
+
+local savedTheme = nil
+pcall(function()
+    if isfile and isfolder and makefolder and readfile then
+        if not isfolder("BR_Hub") then makefolder("BR_Hub") end
+        if isfile("BR_Hub/theme.txt") then
+            savedTheme = readfile("BR_Hub/theme.txt")
+        end
+    end
+end)
+WindUI:SetTheme(savedTheme or "Ocean")
 
 local Window = WindUI:CreateWindow({
     Title = "BR Hub | JailBird",
@@ -464,11 +477,13 @@ InfoTab:Button({
     Desc = "Current Version: v2.6.6",
     Callback = function() end
 })
+InfoTab:Divider()
 InfoTab:Button({
     Title = "Changelog",
     Desc = "- Config system added\n- Skeleton & Tracer ESP\n- Team-colored visuals\n- Custom themes\n- TP Walk Speed slider\n- Camera FOV slider\n- Name, Health, Tool ESP\n- Gun Spoofer button\n- Heartbeat loops\n- ESP anchored above head",
     Callback = function() end
 })
+InfoTab:Divider()
 InfoTab:Button({
     Title = "Script Credits",
     Desc = "Lead Developer: goth\nUI Framework: WindUI",
@@ -505,6 +520,8 @@ local jumpPowerSlider = MoveTab:Slider({
 })
 currentConfig:Register("JumpPower", jumpPowerSlider)
 
+MoveTab:Divider()
+
 local tpWalkSpeedSlider = MoveTab:Slider({
     Title = "TP Walk Speed",
     Desc = "Multiplier for TP Walk (10-200)",
@@ -516,6 +533,8 @@ local tpWalkSpeedSlider = MoveTab:Slider({
     end
 })
 currentConfig:Register("TPWalkSpeed", tpWalkSpeedSlider)
+
+MoveTab:Divider()
 
 local infJumpToggle = MoveTab:Toggle({
     Title = "Infinite Jump",
@@ -599,6 +618,8 @@ local tpWalkToggle = MoveTab:Toggle({
 })
 currentConfig:Register("TPWalk", tpWalkToggle)
 
+MoveTab:Divider()
+
 local AimTab = Window:Tab({ Title = "Aim", Icon = "crosshair" })
 
 local aimbotToggle = AimTab:Toggle({
@@ -626,6 +647,8 @@ local visibleOnlyToggle = AimTab:Toggle({
     Callback = function(v) getgenv().AimbotSettings.VisibleOnly = v end
 })
 currentConfig:Register("VisibleOnly", visibleOnlyToggle)
+
+AimTab:Divider()
 
 local showFOVToggle = AimTab:Toggle({
     Title = "Show FOV Circle",
@@ -686,6 +709,8 @@ local rainbowFOVToggle = AimTab:Toggle({
 })
 currentConfig:Register("RainbowFOV", rainbowFOVToggle)
 
+AimTab:Divider()
+
 local smoothnessSlider = AimTab:Slider({
     Title = "Aimbot Smoothness",
     Step = 1,
@@ -694,6 +719,8 @@ local smoothnessSlider = AimTab:Slider({
     Callback = function(v) getgenv().AimbotSettings.Smoothness = v end
 })
 currentConfig:Register("Smoothness", smoothnessSlider)
+
+AimTab:Divider()
 
 local hitboxToggle = AimTab:Toggle({
     Title = "Head Hitbox Size Changer",
@@ -764,6 +791,8 @@ local spinBotToggle = AntiAimTab:Toggle({
 })
 currentConfig:Register("SpinBotEnabled", spinBotToggle)
 
+AntiAimTab:Divider()
+
 local spinModeDropdown = AntiAimTab:Dropdown({
     Title = "SpinBot Mode",
     Desc = "Select spin type",
@@ -783,7 +812,8 @@ currentConfig:Register("SpinBotMode", spinModeDropdown)
 
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
--- ==================== PING CHANGER ====================
+ExploitsTab:Divider()
+
 local pingChangerToggle = ExploitsTab:Toggle({
     Title = "Ping Changer",
     Desc = "Changes The Ping People See On The Leaderboard",
@@ -793,7 +823,12 @@ local pingChangerToggle = ExploitsTab:Toggle({
         if state then
             if Connections.PingChanger then Connections.PingChanger:Disconnect() end
             Connections.PingChanger = RunService.Heartbeat:Connect(function()
-                local latencyValue = getgenv().PingChangerValue or 0
+                local latencyValue
+                if getgenv().RandomHighPingEnabled then
+                    latencyValue = math.random(500, 1000)
+                else
+                    latencyValue = getgenv().PingChangerValue or 0
+                end
                 local eventModule = ReplicatedStorage:FindFirstChild("GameEvents")
                 if eventModule then
                     local latencyEvent = eventModule:FindFirstChild("Latency")
@@ -812,6 +847,17 @@ local pingChangerToggle = ExploitsTab:Toggle({
 })
 currentConfig:Register("PingChanger", pingChangerToggle)
 
+local randomHighPingToggle = ExploitsTab:Toggle({
+    Title = "Random High Ping",
+    Desc = "Randomizes ping between 500-1000 when Ping Changer is on",
+    Icon = "shuffle",
+    Flag = "RandomHighPing",
+    Callback = function(state)
+        getgenv().RandomHighPingEnabled = state
+    end
+})
+currentConfig:Register("RandomHighPing", randomHighPingToggle)
+
 local pingChangerSlider = ExploitsTab:Slider({
     Title = "Ping Value",
     Desc = "Sets the ping value (0 to 1000)",
@@ -824,6 +870,7 @@ local pingChangerSlider = ExploitsTab:Slider({
 })
 currentConfig:Register("PingChangerValue", pingChangerSlider)
 
+ExploitsTab:Divider()
 
 local autoKillV1Connection = nil
 local autoKillV1Running = false
@@ -833,15 +880,31 @@ local function isAlive(character)
     return hum and hum.Health > 0
 end
 
-local function canSee(targetCharacter, ignoreList)
-    local camPos = Camera.CFrame.Position
-    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-    if not targetRoot then return false end
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = ignoreList
-    local result = workspace:Raycast(camPos, targetRoot.Position - camPos, params)
-    return result == nil
+local function isPartVisible(origin, part, ignoreList)
+    -- Check multiple points on the part's bounding box for visibility
+    local cf = part.CFrame
+    local size = part.Size * 0.5 -- half extents
+    local points = {
+        cf * Vector3.new( size.X,  size.Y,  size.Z),
+        cf * Vector3.new( size.X,  size.Y, -size.Z),
+        cf * Vector3.new( size.X, -size.Y,  size.Z),
+        cf * Vector3.new( size.X, -size.Y, -size.Z),
+        cf * Vector3.new(-size.X,  size.Y,  size.Z),
+        cf * Vector3.new(-size.X,  size.Y, -size.Z),
+        cf * Vector3.new(-size.X, -size.Y,  size.Z),
+        cf * Vector3.new(-size.X, -size.Y, -size.Z),
+        cf.Position -- also center
+    }
+    for _, point in ipairs(points) do
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = ignoreList
+        local result = workspace:Raycast(origin, point - origin, params)
+        if result == nil then
+            return true
+        end
+    end
+    return false
 end
 
 local function AutoKillV1Loop()
@@ -857,9 +920,9 @@ local function AutoKillV1Loop()
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
         local char = plr.Character
         if not char or not isAlive(char) then continue end
-        if not canSee(char, {localChar, char}) then continue end
         local head = char:FindFirstChild("Head")
         if not head then continue end
+        if not isPartVisible(Camera.CFrame.Position, head, {localChar, char}) then continue end
 
         local camPos = Camera.CFrame.Position
         local endPos = head.Position
@@ -883,8 +946,8 @@ local function AutoKillV1Loop()
 end
 
 local autoKillV1Toggle = ExploitsTab:Toggle({
-    Title = "Auto Kill V1 [BETA]",
-    Desc = "Targets head if visible and not behind wall",
+    Title = "Auto Kill V1 [BETA] (Recommended)",
+    Desc = "Targets head if any part of it is visible",
     Icon = "target",
     Flag = "AutoKillV1",
     Callback = function(state)
@@ -902,6 +965,8 @@ local autoKillV1Toggle = ExploitsTab:Toggle({
     end
 })
 currentConfig:Register("AutoKillV1", autoKillV1Toggle)
+
+ExploitsTab:Divider()
 
 local autoKillV2Connection = nil
 local autoKillV2Running = false
@@ -921,12 +986,11 @@ local function AutoKillV2Loop()
         if LocalPlayer.Team and plr.Team and plr.Team == LocalPlayer.Team then continue end
         local char = plr.Character
         if not char or not isAlive(char) then continue end
-        if not canSee(char, {localChar, char}) then continue end
 
         local targetPart = nil
         for _, name in ipairs(priority) do
             local part = char:FindFirstChild(name)
-            if part then
+            if part and isPartVisible(Camera.CFrame.Position, part, {localChar, char}) then
                 targetPart = part
                 break
             end
@@ -956,7 +1020,7 @@ end
 
 local autoKillV2Toggle = ExploitsTab:Toggle({
     Title = "Auto Kill V2 [BETA]",
-    Desc = "Targets any visible part not behind wall (Head > Torso > Arms > Legs)",
+    Desc = "Targets any visible part of the body (checks multiple points)",
     Icon = "crosshair",
     Flag = "AutoKillV2",
     Callback = function(state)
@@ -975,7 +1039,7 @@ local autoKillV2Toggle = ExploitsTab:Toggle({
 })
 currentConfig:Register("AutoKillV2", autoKillV2Toggle)
 
-
+ExploitsTab:Divider()
 
 local killAllToggle = ExploitsTab:Toggle({
     Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
@@ -1031,6 +1095,8 @@ local killAllToggle = ExploitsTab:Toggle({
 })
 currentConfig:Register("KillAll", killAllToggle)
 
+ExploitsTab:Divider()
+
 local infiniteAmmoToggle = ExploitsTab:Toggle({
     Title = "Use Reserve Ammo (Reload Exploit)",
     Desc = "Uses ammo from reserve",
@@ -1053,6 +1119,8 @@ local infiniteAmmoToggle = ExploitsTab:Toggle({
 })
 currentConfig:Register("InfiniteAmmo", infiniteAmmoToggle)
 
+ExploitsTab:Divider()
+
 ExploitsTab:Button({
     Title = "Anti Kick",
     Desc = "Prevents kicks (leave button breaks)",
@@ -1071,6 +1139,8 @@ ExploitsTab:Button({
 
 local VisualsTab = Window:Tab({ Title = "Visuals", Icon = "eye" })
 
+VisualsTab:Divider()
+
 local skeletonToggle = VisualsTab:Toggle({
     Title = "Skeleton ESP",
     Desc = "Draws lines connecting body parts",
@@ -1088,6 +1158,8 @@ local tracersToggle = VisualsTab:Toggle({
     Callback = function(state) getgenv().EspSettings.Tracers = state end
 })
 currentConfig:Register("TracersESP", tracersToggle)
+
+VisualsTab:Divider()
 
 local nameEspToggle = VisualsTab:Toggle({
     Title = "Name ESP",
@@ -1116,6 +1188,8 @@ local toolEspToggle = VisualsTab:Toggle({
 })
 currentConfig:Register("ToolESP", toolEspToggle)
 
+VisualsTab:Divider()
+
 local rainbowEspToggle = VisualsTab:Toggle({
     Title = "Rainbow ESP",
     Desc = "Cycles ESP colors smoothly",
@@ -1124,6 +1198,8 @@ local rainbowEspToggle = VisualsTab:Toggle({
     Callback = function(v) getgenv().EspSettings.Rainbow = v end
 })
 currentConfig:Register("RainbowESP", rainbowEspToggle)
+
+VisualsTab:Divider()
 
 local chamsToggle = VisualsTab:Toggle({
     Title = "Player Wallhack (Chams)",
@@ -1154,6 +1230,8 @@ local chamsToggle = VisualsTab:Toggle({
 })
 currentConfig:Register("Chams", chamsToggle)
 
+VisualsTab:Divider()
+
 local fullbrightToggle = VisualsTab:Toggle({
     Title = "Fullbright",
     Icon = "sun",
@@ -1171,6 +1249,8 @@ local fullbrightToggle = VisualsTab:Toggle({
     end
 })
 currentConfig:Register("Fullbright", fullbrightToggle)
+
+VisualsTab:Divider()
 
 local fovRedSlider = VisualsTab:Slider({
     Title = "FOV Red",
@@ -1209,6 +1289,8 @@ local fovBlueSlider = VisualsTab:Slider({
 currentConfig:Register("FOVBlue", fovBlueSlider)
 
 local UtilTab = Window:Tab({ Title = "Utility", Icon = "wrench" })
+
+UtilTab:Divider()
 
 local cameraFOVToggle = UtilTab:Toggle({
     Title = "Camera FOV Override",
@@ -1251,6 +1333,8 @@ local cameraFOVSlider = UtilTab:Slider({
 })
 currentConfig:Register("CameraFOVValue", cameraFOVSlider)
 
+UtilTab:Divider()
+
 UtilTab:Button({
     Title = "Teleport Upwards",
     Desc = "+25 studs",
@@ -1283,15 +1367,27 @@ UtilTab:Button({
 
 local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
 
+SettingsTab:Divider()
+
 local themeDropdownValues = {}
 for _, t in ipairs(customThemes) do
-    table.insert(themeDropdownValues, { Title = t.Name, Icon = "palette", Callback = function() WindUI:SetTheme(t.Name) end })
+    table.insert(themeDropdownValues, { Title = t.Name, Icon = "palette", Callback = function()
+        WindUI:SetTheme(t.Name)
+        pcall(function()
+            if isfolder and makefolder and writefile then
+                if not isfolder("BR_Hub") then makefolder("BR_Hub") end
+                writefile("BR_Hub/theme.txt", t.Name)
+            end
+        end)
+    end })
 end
 SettingsTab:Dropdown({
     Title = "Select Interface Theme",
     Desc = "Custom themes",
     Values = themeDropdownValues
 })
+
+SettingsTab:Divider()
 
 SettingsTab:Button({
     Title = "Save Config",
