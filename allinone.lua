@@ -47,7 +47,7 @@ getgenv().CameraFOVEnabled = false
 getgenv().CameraFOVValue = 70
 
 getgenv().RandomHighPingEnabled = false
-getgenv().LeanSpammerSpeed = 5
+getgenv().SpinAroundEnabled = false
 
 local Connections = {
     Spin = nil,
@@ -60,7 +60,7 @@ local Connections = {
     Chams = nil,
     CameraFOV = nil,
     PingChanger = nil,
-    LeanSpammer = nil
+    SpinAround = nil
 }
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -476,13 +476,13 @@ RunService.Heartbeat:Connect(updateESP)
 local InfoTab = Window:Tab({ Title = "Info", Icon = "home" })
 InfoTab:Button({
     Title = "Welcome to BR Hub",
-    Desc = "Current Version: v2.7.1",
+    Desc = "Current Version: v2.7.2",
     Callback = function() end
 })
 InfoTab:Divider()
 InfoTab:Button({
     Title = "Changelog",
-    Desc = "- Reverted to classic camera aimbot\n- Added Lean Spammer (Anti Aim)\n- Fixed various bugs\n- All previous features intact",
+    Desc = "- No Reload replaces Reload Exploit\n- Spin Around requires Auto Teleport\n- Removed Ping Change Speed slider\n- Lean Spammer\n- Classic camera aimbot restored\n- All previous features intact",
     Callback = function() end
 })
 InfoTab:Divider()
@@ -826,7 +826,7 @@ local leanSpammerToggle = AntiAimTab:Toggle({
                 local stanceRemote = ReplicatedStorage:FindFirstChild("GameEvents")
                 if stanceRemote then stanceRemote = stanceRemote:FindFirstChild("Stance") end
                 if stanceRemote then
-                    local dir = math.random(-2, 2)
+                    local dir = math.random(-1, 1)
                     stanceRemote:FireServer("Standing", dir)
                 end
             end)
@@ -846,7 +846,7 @@ AntiAimTab:Slider({
     Step = 1,
     Flag = "LeanSpammerSpeed",
     Value = { Min = 1, Max = 20, Default = 5 },
-    Callback = function(state)
+    Callback = function(value)
         getgenv().LeanSpammerSpeed = value
         if Connections.LeanSpammer then
             Connections.LeanSpammer:Disconnect()
@@ -857,7 +857,7 @@ AntiAimTab:Slider({
                     local dir = math.random(-1, 1)
                     stanceRemote:FireServer("Standing", dir)
                 end
-                task.wait(1 / state)
+                task.wait(1 / value)
             end)
         end
     end
@@ -1093,8 +1093,8 @@ currentConfig:Register("AutoKillV2", autoKillV2Toggle)
 
 ExploitsTab:Divider()
 
-local killAllToggle = ExploitsTab:Toggle({
-    Title = "Kill All (YOU HAVE TO MANUALLY SHOOT)",
+local autoTeleportToggle = ExploitsTab:Toggle({
+    Title = "Auto Teleport To Enemies",
     Desc = "Teleports above & behind enemies",
     Icon = "swords",
     Flag = "KillAll",
@@ -1145,13 +1145,66 @@ local killAllToggle = ExploitsTab:Toggle({
         end
     end
 })
-currentConfig:Register("KillAll", killAllToggle)
+currentConfig:Register("KillAll", autoTeleportToggle)
+
+local spinAroundToggle = ExploitsTab:Toggle({
+    Title = "Spin Around Target",
+    Desc = "Orbits around the nearest enemy extremely fast (Requires Auto Teleport to be on)",
+    Icon = "rotate-cw",
+    Flag = "SpinAround",
+    Callback = function(state)
+        getgenv().SpinAroundEnabled = state
+        if state then
+            if Connections.SpinAround then Connections.SpinAround:Disconnect() end
+            Connections.SpinAround = RunService.Heartbeat:Connect(function()
+                if not getgenv().SpinAroundEnabled or not getgenv().BackstabActive then return end
+                local localChar = LocalPlayer.Character
+                if not localChar then return end
+                local lRoot = localChar:FindFirstChild("HumanoidRootPart")
+                if not lRoot then return end
+
+                local targetChar = nil
+                local targetHRP = nil
+                local shortestDist = math.huge
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and plr.Character then
+                        if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+                        local eHum = plr.Character:FindFirstChildOfClass("Humanoid")
+                        local eHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+                        if eHum and eHRP and eHum.Health > 0 then
+                            local dist = (eHRP.Position - lRoot.Position).Magnitude
+                            if dist < shortestDist then
+                                shortestDist = dist
+                                targetChar = plr.Character
+                                targetHRP = eHRP
+                            end
+                        end
+                    end
+                end
+
+                if targetHRP then
+                    local angle = (tick() * 10) % 1 * math.pi * 2
+                    local radius = 5
+                    local height = 3.5
+                    local pos = targetHRP.Position + Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius)
+                    lRoot.CFrame = CFrame.new(pos, targetHRP.Position)
+                end
+            end)
+        else
+            if Connections.SpinAround then
+                Connections.SpinAround:Disconnect()
+                Connections.SpinAround = nil
+            end
+        end
+    end
+})
+currentConfig:Register("SpinAround", spinAroundToggle)
 
 ExploitsTab:Divider()
 
-local infiniteAmmoToggle = ExploitsTab:Toggle({
-    Title = "Use Reserve Ammo (Reload Exploit)",
-    Desc = "Uses ammo from reserve",
+local noReloadToggle = ExploitsTab:Toggle({
+    Title = "No Reload",
+    Desc = "When enabled, you will not have to reload",
     Icon = "repeat",
     Flag = "InfiniteAmmo",
     Callback = function(state)
@@ -1169,7 +1222,7 @@ local infiniteAmmoToggle = ExploitsTab:Toggle({
         end
     end
 })
-currentConfig:Register("InfiniteAmmo", infiniteAmmoToggle)
+currentConfig:Register("InfiniteAmmo", noReloadToggle)
 
 ExploitsTab:Divider()
 
