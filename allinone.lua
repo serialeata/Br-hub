@@ -826,8 +826,9 @@ local leanSpammerToggle = AntiAimTab:Toggle({
                 local stanceRemote = ReplicatedStorage:FindFirstChild("GameEvents")
                 if stanceRemote then stanceRemote = stanceRemote:FindFirstChild("Stance") end
                 if stanceRemote then
-                    local dir = math.random(-1, 1)
+                    local dir = math.random(-2, 2)
                     stanceRemote:FireServer("Standing", dir)
+                task.wait(1/leanspeed)
                 end
             end)
         else
@@ -846,7 +847,7 @@ AntiAimTab:Slider({
     Step = 1,
     Flag = "LeanSpammerSpeed",
     Value = { Min = 1, Max = 20, Default = 5 },
-    Callback = function(value)
+    Callback = function(leanspeed)
         getgenv().LeanSpammerSpeed = value
         if Connections.LeanSpammer then
             Connections.LeanSpammer:Disconnect()
@@ -857,7 +858,7 @@ AntiAimTab:Slider({
                     local dir = math.random(-1, 1)
                     stanceRemote:FireServer("Standing", dir)
                 end
-                task.wait(1 / value)
+                task.wait(1 / leanspeed)
             end)
         end
     end
