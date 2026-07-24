@@ -47,6 +47,7 @@ getgenv().CameraFOVEnabled = false
 getgenv().CameraFOVValue = 70
 
 getgenv().RandomHighPingEnabled = false
+getgenv().LeanSpammerSpeed = 5
 
 local Connections = {
     Spin = nil,
@@ -58,7 +59,8 @@ local Connections = {
     Esp = nil,
     Chams = nil,
     CameraFOV = nil,
-    PingChanger = nil
+    PingChanger = nil,
+    LeanSpammer = nil
 }
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -474,13 +476,13 @@ RunService.Heartbeat:Connect(updateESP)
 local InfoTab = Window:Tab({ Title = "Info", Icon = "home" })
 InfoTab:Button({
     Title = "Welcome to BR Hub",
-    Desc = "Current Version: v2.6.6",
+    Desc = "Current Version: v2.7.1",
     Callback = function() end
 })
 InfoTab:Divider()
 InfoTab:Button({
     Title = "Changelog",
-    Desc = "- Config system added\n- Skeleton & Tracer ESP\n- Team-colored visuals\n- Custom themes\n- TP Walk Speed slider\n- Camera FOV slider\n- Name, Health, Tool ESP\n- Gun Spoofer button\n- Heartbeat loops\n- ESP anchored above head",
+    Desc = "- Reverted to classic camera aimbot\n- Added Lean Spammer (Anti Aim)\n- Fixed various bugs\n- All previous features intact",
     Callback = function() end
 })
 InfoTab:Divider()
@@ -623,7 +625,7 @@ MoveTab:Divider()
 local AimTab = Window:Tab({ Title = "Aim", Icon = "crosshair" })
 
 local aimbotToggle = AimTab:Toggle({
-    Title = "Aimbot (lowk sucks)",
+    Title = "Aimbot (Camera Lock)",
     Desc = "Locks camera onto target",
     Icon = "target",
     Flag = "Aimbot",
@@ -810,6 +812,57 @@ local spinModeDropdown = AntiAimTab:Dropdown({
 })
 currentConfig:Register("SpinBotMode", spinModeDropdown)
 
+AntiAimTab:Divider()
+
+local leanSpammerToggle = AntiAimTab:Toggle({
+    Title = "Lean Spammer",
+    Desc = "Rapidly sends random lean stances (-1, 0, 1)",
+    Icon = "arrow-left-right",
+    Flag = "LeanSpammer",
+    Callback = function(state)
+        if state then
+            if Connections.LeanSpammer then Connections.LeanSpammer:Disconnect() end
+            Connections.LeanSpammer = RunService.Heartbeat:Connect(function()
+                local stanceRemote = ReplicatedStorage:FindFirstChild("GameEvents")
+                if stanceRemote then stanceRemote = stanceRemote:FindFirstChild("Stance") end
+                if stanceRemote then
+                    local dir = math.random(-1, 1)
+                    stanceRemote:FireServer("Standing", dir)
+                end
+            end)
+        else
+            if Connections.LeanSpammer then
+                Connections.LeanSpammer:Disconnect()
+                Connections.LeanSpammer = nil
+            end
+        end
+    end
+})
+currentConfig:Register("LeanSpammer", leanSpammerToggle)
+
+AntiAimTab:Slider({
+    Title = "Lean Speed",
+    Desc = "Controls how fast the lean changes (1-20)",
+    Step = 1,
+    Flag = "LeanSpammerSpeed",
+    Value = { Min = 1, Max = 20, Default = 5 },
+    Callback = function(value)
+        getgenv().LeanSpammerSpeed = value
+        if Connections.LeanSpammer then
+            Connections.LeanSpammer:Disconnect()
+            Connections.LeanSpammer = RunService.Heartbeat:Connect(function()
+                local stanceRemote = ReplicatedStorage:FindFirstChild("GameEvents")
+                if stanceRemote then stanceRemote = stanceRemote:FindFirstChild("Stance") end
+                if stanceRemote then
+                    local dir = math.random(-1, 1)
+                    stanceRemote:FireServer("Standing", dir)
+                end
+                task.wait(1 / value)
+            end)
+        end
+    end
+})
+
 local ExploitsTab = Window:Tab({ Title = "Exploits", Icon = "zap" })
 
 ExploitsTab:Divider()
@@ -881,9 +934,8 @@ local function isAlive(character)
 end
 
 local function isPartVisible(origin, part, ignoreList)
-    -- Check multiple points on the part's bounding box for visibility
     local cf = part.CFrame
-    local size = part.Size * 0.5 -- half extents
+    local size = part.Size * 0.5
     local points = {
         cf * Vector3.new( size.X,  size.Y,  size.Z),
         cf * Vector3.new( size.X,  size.Y, -size.Z),
@@ -893,7 +945,7 @@ local function isPartVisible(origin, part, ignoreList)
         cf * Vector3.new(-size.X,  size.Y, -size.Z),
         cf * Vector3.new(-size.X, -size.Y,  size.Z),
         cf * Vector3.new(-size.X, -size.Y, -size.Z),
-        cf.Position -- also center
+        cf.Position
     }
     for _, point in ipairs(points) do
         local params = RaycastParams.new()
